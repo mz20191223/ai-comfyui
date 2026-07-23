@@ -1,0 +1,60 @@
+{
+  "model": "LTX 2.3 (ComfyUI-Licon-MSR) + MSR IC-LoRA V2",
+  "character_refs": ["peach_role_v6.png", "ref_front.png", "ref_side.png", "ref_back.png", "ref_expr_happy.png"],
+  "background_ref": "bg_meadow.png",
+  "global_rules_en": [
+    "Fixed camera. NO dolly, NO zoom, NO pan, NO lateral tracking.",
+    "The meadow background (including the grass mound) must remain IDENTICAL and stay fully in frame for the whole clip; do not push it out of view or make it disappear.",
+    "The character Taozi must stay IN PLACE. No walking, no running, no sideways movement. Only the intended small local motion (peeking / stretching) is allowed.",
+    "Keep Taozi's design exactly consistent with the provided character reference images (same pink peach body, smooth top, stubby limbs, big eyes)."
+  ],
+  "global_rules_zh": [
+    "固定机位。不要推拉、不要变焦、不要平移、不要横向跟拍。",
+    "草地背景（含草堆）必须全程完全一致且完整留在画面内，不要把它推出画面或让它消失。",
+    "桃子必须待在原地。不要走路、不要奔跑、不要横向移动。只做预设的局部小动作（探头/伸懒腰）。",
+    "桃子造型须与提供的角色参考图完全一致（同样的粉色桃子身体、平滑头顶、短粗手脚、大眼睛）。"
+  ],
+  "segments": [
+    {
+      "id": "s01_s02",
+      "from": "s01.png",
+      "to": "s02.png",
+      "motion_zh": "桃子圆脑袋从草叶间一点点探出，到整颗脑袋露出（原地，固定机位）",
+      "prompt_en": "A cute pink peach chibi character (Taozi) slowly peeks its round head up from between the grass blades, until the whole head is revealed, still in place. Fixed camera; the meadow and grass mound stay identical and in frame; Taozi does not move sideways. Soft Pixar style, same character design as references.",
+      "prompt_zh": "可爱的粉色桃子 Q 版角色（桃子）从草叶间慢慢把圆脑袋探出来，直到整颗脑袋露出，全程原地不动。固定机位；草地与草堆始终一致且留在画面内；桃子不横向移动。柔和皮克斯风格，角色造型与参考图一致。"
+    },
+    {
+      "id": "s02_s03",
+      "from": "s02.png",
+      "to": "s03.png",
+      "motion_zh": "脑袋探出后，身体再往上冒出约三分之一（原地，固定机位）",
+      "prompt_en": "Taozi, still in place, rises a little so about one third of its round body shows above the grass. Fixed camera; background unchanged and in frame; no lateral movement. Same character design as references, soft Pixar style.",
+      "prompt_zh": "桃子原地不动，再往上冒一点，让圆身体约三分之一露出草面。固定机位；背景不变且留在画面内；不横向移动。造型与参考图一致，柔和皮克斯风格。"
+    },
+    {
+      "id": "s03_s04",
+      "from": "s03.png",
+      "to": "s04.png",
+      "motion_zh": "身体露出到约三分之二，两只短手扒住草叶（原地，固定机位）",
+      "prompt_en": "Taozi rises until about two thirds of its body is above the grass, both short stubby arms reaching to hold the grass blades. Fixed camera; meadow unchanged and in frame; no walking. Same character design, soft Pixar style.",
+      "prompt_zh": "桃子冒到约三分之二身体露出草面，两只短粗小手扒住草叶。固定机位；草地不变且留在画面内；不走路。造型一致，柔和皮克斯风格。"
+    },
+    {
+      "id": "s04_s05",
+      "from": "s04.png",
+      "to": "s05.png",
+      "motion_zh": "从草里完全站起，伸个懒腰（原地，固定机位，最多小幅转身不横移）",
+      "prompt_en": "Taozi fully stands up out of the grass and stretches, arms up, in place. Fixed camera; same meadow background; at most a tiny in-place turn, no lateral travel. Same character design, soft Pixar style.",
+      "prompt_zh": "桃子从草里完全站起并伸懒腰、双臂上举，原地完成。固定机位；同一片草地背景；最多极小幅度原地转一下，不横向移动。造型一致，柔和皮克斯风格。"
+    }
+  ],
+  "fix_summary": {
+    "issue1_grass_pushed_away": "根因=原 s01 是空镜大全景+模型自由推进把草堆推飞。修复=①云端重出 s01 与 s02 同构图（去掉会被推飞的大全景空镜）②全局规则强制'背景一致且留在画面内、固定机位不推'③background_ref 锁定草地。",
+    "issue2_character_runs": "根因=相邻关键帧构图/位置差被模型误读为位移。修复=①关键帧同机位同屏幕位置（只变探出量）②全局规则'原地、勿横移跑动'③MSR 多图参考+角色参考锁身份④可选叠 depth ControlNet 锁首帧结构。"
+  },
+  "notes": [
+    "每段用首帧(s0X.png)做 i2v 锚定 + 角色参考 + 背景参考 + 上述 prompt。",
+    "T4 上 LTX 2.3 用 GGUF/FP8 + 顺序 offload；每段单独提交，跑完再下一段，避免显存叠加。",
+    "成片用 ffmpeg 统一 720x1280 竖屏拼接（同今天 p1_scene.mp4）。"
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "anchor_image": "peach_role_v6.png",
+  "anchor_desc_zh": "桃子：圆润粉色的桃子造型 Q 版卡通角色，身体像一个胖胖的水蜜桃，顶端平滑无凸起，有两只短粗的小手和两只短粗的小脚，大眼睛小嘴，皮克斯动画风格，柔和粉色渐变与白色高光。",
+  "anchor_desc_en": "Taozi: a round pink peach-shaped chibi cartoon character, body like a plump honey-peach, smooth top with no bump, two short stubby arms and two short stubby legs, big eyes and small mouth, Pixar animation style, soft pink gradient with white highlights.",
+  "model": "Qwen-Image-Edit-2511 (本地 GGUF / ComfyUI)",
+  "consistency_rule": "每次生成都把 anchor_image 作为参考图送入，指令中强调 'this exact character / 保持与参考图完全一致的设计'，禁止改变配色、体型、五官比例。",
+  "angles": [
+    {
+      "id": "ref_front",
+      "name": "正面全身",
+      "purpose": "MSR / Qwen-Edit 主角参考（最稳的一张）",
+      "prompt_en": "Keep this exact character's design identical (same pink peach body, smooth top, stubby arms and legs, big eyes). Generate a full-body FRONT view: standing upright, facing the camera, both short arms at sides, round pink peach body fully visible, cute face centered. Pixar style, soft clean light-gray studio background, no other objects.",
+      "prompt_zh": "保持与参考图完全相同的角色设计（同样的粉色桃子身体、平滑头顶、短粗手脚、大眼睛）。生成正面全身图：直立、正对镜头、两只短手垂在身侧、圆润桃子身体完整可见、可爱脸居中。皮克斯风格，柔和浅灰纯色背景，无其他物体。"
+    },
+    {
+      "id": "ref_side",
+      "name": "左侧面",
+      "purpose": "补充侧面轮廓，增强 MSR 多角度稳定",
+      "prompt_en": "Keep this exact character's design identical. Generate a full-body LEFT SIDE PROFILE view: we see the round body contour from the left, one stubby arm visible, smooth head top, the peach shape clearly readable. Pixar style, soft clean light-gray studio background, no other objects.",
+      "prompt_zh": "保持与参考图完全相同的角色设计。生成左侧面全身图：从左侧看圆润身体轮廓、可见一只短手、头顶平滑、桃子形状清晰可辨。皮克斯风格，柔和浅灰纯色背景，无其他物体。"
+    },
+    {
+      "id": "ref_back",
+      "name": "背面",
+      "purpose": "补充背面，防止视频里转身时崩坏",
+      "prompt_en": "Keep this exact character's design identical. Generate a full-body BACK view: round pink peach body seen from behind, two small stubby legs visible at the bottom, smooth back of the head, no face visible. Pixar style, soft clean light-gray studio background, no other objects.",
+      "prompt_zh": "保持与参考图完全相同的角色设计。生成背面全身图：从背后看圆润粉色桃子身体、底部可见两只短粗小脚、头顶背面平滑、不露脸。皮克斯风格，柔和浅灰纯色背景，无其他物体。"
+    },
+    {
+      "id": "ref_expr_happy",
+      "name": "开心表情特写",
+      "purpose": "表情参考，视频里用到惊喜/伸懒腰时更稳",
+      "prompt_en": "Keep this exact character's design identical. Generate a FRONT close-up of the face with a happy excited expression: big sparkly eyes, open smiling mouth, same pink peach head design, cheeks slightly flushed. Pixar style, soft clean light-gray studio background, no other objects.",
+      "prompt_zh": "保持与参考图完全相同的角色设计。生成正面脸部特写，开心兴奋表情：亮晶晶的大眼睛、张开笑的嘴、同样的粉色桃子头部设计、脸颊微红。皮克斯风格，柔和浅灰纯色背景，无其他物体。"
+    }
+  ],
+  "notes": [
+    "生成后用肉眼比对 4 张与 anchor 的配色/体型/五官是否一致；不一致的重生成或丢弃该张，不勉强使用。",
+    "最终参考集 = anchor(peach_role_v6) + 通过上述校验的角度图，喂给 MSR（≤4 张角色参考）与 Qwen-Edit（关键帧生成）。",
+    "T4 显存紧张：Qwen-Image-Edit-2511 GGUF(Q4_K_M ~13GB) 与 LTX 2.3 不要同时载，分段提交、等上一段完全结束再跑下一段。"
+  ]
+}
