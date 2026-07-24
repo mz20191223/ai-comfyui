@@ -1,132 +1,82 @@
-# 桃子 AI 视频项目 · 云端 ComfyUI 衔接手册
+# 桃子 AI 视频项目 · 云端 ComfyUI 续接手册（2026-07-24 更新）
 
-> 最后更新：2026-07-23 晚（HAI 已关机，用户离开；本机继续预研）
-> 本文件是「另一台电脑 / 重开 HAI 后」无缝续接的唯一权威手册。
-
----
-
-## 0. 一句话现状
-- **HAI 实例已关机**（约 18:41 起不可达）。重开后会换 IP，需重新发我 `IP + SSH 密码`。
-- **已推 GitHub**：`ai-comfyui` 仓库 `main` 分支 = 本手册 + `cloud/` 全套脚本/镜像/提示词（孤儿分支，干净快照）。
-- **当前最大卡点（今晚新发现，见第 2 节）**：Qwen-Image-Edit 出分镜图所需的**节点包在本实例上装不上**，需要换获取路径。
+> 本手册供「另一台电脑 / HAI 重开后」无缝续接。实例当前**已关机**，重开后会换 IP，需重发 SSH 密码。
 
 ---
 
-## 1. 目标与验收
-- 桃子（Pixar 风小兽）短视频：关键文字 + 角色参考图 → 自动出「角色一致」短视频。
-- 架构（用户 2026-07-23 拍板）：**Qwen-Image-Edit-2511 出分镜图（图像前端）+ LTX 2.3 出视频（视频引擎）**。
-- 验收 = 达到本地旧片效果 + 修复两个已知问题：
-  1. s01→s02 草堆被推飞像切场景（camera/构图不连续）
-  2. 角色横移跑动而非原地（运镜未进视频提示词）
+## 0. 项目目标
+- 端到端自动视频：关键内容(文字) + 桃子角色参考图 → 一致短视频。
+- 验收标准：达到本地 p1 效果 **且修复两个已知运镜问题**：
+  1. s01→s02 草堆被推飞、像切场景（关键帧构图不连续）
+  2. 角色横移跑动而非原地探头扒草（camera 运镜未进视频提示词）
+- 不抽卡付费、反复改 → 选云端 ComfyUI（HAI T4 16G）。
 
----
+## 1. 最终架构（2026-07-24 破局后定稿）
+**图像前端（出分镜图）= Qwen-Image-Edit + ComfyUI 原生节点包；视频端 = LTX 2.3。**
 
-## 2. ?? 今晚核实的关键修正（之前手册写的，部分已过时）
+| 层 | 方案 | 状态 |
+|----|------|------|
+| 图像生成（分镜图/多角度） | **krisheetu/ComfyUI_Qwen-Image**（v2.2.0，走 ComfyUI 标准分离加载架构，原生 MODEL 接口）+ ComfyUI-GGUF 加载 Qwen-Image-Edit-2511 Q4_K_M GGUF | 节点包源码本机已镜像待传；权重实例已下一半待续传 |
+| 多角度辅助 | **jtydhr88/ComfyUI-qwenmultiangle**（交互相机→角度提示词）+ **fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA**（ModelScope 可下 `modelscope.cn/models/fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA`） | 节点包源码待抓；LoRA 实例侧 ModelScope 直下 |
+| 视频生成 | **LTX 2.3**（ComfyUI-LTXVideo 已装 + ComfyUI-GGUF 已装） | ? 已装好 |
 
-### 2.1 实例侧出网白名单（实测）
-| 可达 | 不可达 |
-|---|---|
-| huggingface.co（含官方权重） | github.com（git clone 被重置） |
-| modelscope.cn | raw.githubusercontent.com |
-| baidu | 一切 GitHub 镜像（ghproxy/kgithub/gitproxy 全死） |
+### 为什么这个方案能成（关键反转）
+- 之前死磕的 HM-RunningHub / AIFSH 包都是 **diffusers 版**（`from diffusers import QwenImagePipeline`），不接 ComfyUI 原生 MODEL，喂不进 GGUF unet。
+- **krisheetu 包走原生架构**：代码里 `model = comfy.sd.load_diffusion_model(...)`、`import comfy.sample`，节点 `QwenImageUNETLoader/QwenImageCLIPLoader/QwenImageAdvancedDiffusionLoader` 均返回标准 `MODEL`/`CLIP`。
+- 该包 `QwenImageSampler`（**文生图**）接标准 `MODEL` 输入 → **可直接接 ComfyUI-GGUF 加载的 Qwen-Image-Edit-2511 GGUF**。出分镜图以文生图为主，这条完全通。
+- ?? 同包 `QwenImageEdit`（图生编辑）内部调 `pipeline.img2img()`（diffusers API），**不接 GGUF**，本环境暂不用它（多角度改用 qwenmultiangle 角度提示词 + 文生图实现，或后续改代码接入）。
 
-→ **实例上装任何 ComfyUI 节点包，不能走 GitHub，必须走 HF 或 ModelScope。**
+## 2. 实例当前状态（关机前快照，IP 43.155.234.34）
+- ? 已装：`ComfyUI-LTXVideo`、`ComfyUI-GGUF`、桃子锚图 `peach_role_v6.png`（input/）
+- ? 已下一半（关机保留磁盘，重开 `wget -c` 续传）：`models/unet/qwen-image-edit-2511-Q4_K_M.gguf`(约4.2/13G)、`models/text_encoders/Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf`、`models/text_encoders/mmproj-BF16.gguf`、`models/vae/qwen_image_vae.safetensors`
+- ? 未装：`krisheetu/ComfyUI_Qwen-Image`（本机镜像 `_krisheetu_mirror.tar.gz` 待 SFTP）、`jtydhr88/ComfyUI-qwenmultiangle`（待抓）
+- 实例出网白名单：仅 **HF / ModelScope / baidu**；**GitHub 全系（含镜像/codeload/raw）被墙**，git clone 会被重置。
 
-### 2.2 Qwen-Image-Edit 节点包 = 真正的卡点
-- 实例预装 ComfyUI 版本**偏旧**（17:09 拉取的 object_info 里**没有任何 qwen 节点**）。Qwen-Image 是 2025 年才进 ComfyUI 原生支持的，本实例没有。
-- `Comfy-Org/Qwen-Image_ComfyUI` 和 `Comfy-Org/Qwen-Image-Edit_ComfyUI` 在 HF 上**只有权重（.safetensors），没有任何节点代码**——它俩不是节点包。
-- 候选节点包核查结果：
-  - `QwenLM/ComfyUI_Qwen_Image_Edit` → **不存在**
-  - `kijai/ComfyUI-Qwen-Image` → **不存在**
-  - `HM-RunningHub/ComfyUI_RH_Qwen-Image` → 存在，但**基于 diffusers**（requirements 依赖 `git+https://github.com/huggingface/diffusers`），**不走 ComfyUI 原生 MODEL/CLIP，与我们的 GGUF 方案不兼容**，装了也喂不进 GGUF unet。
-  - ComfyUI 官方 `comfy_extras/nodes_qwenimage.py` → **404（当前 master 也没有这个路径）**，原生节点文件位置未定位。
-- **结论**：GGUF 兼容的 Qwen-Image 节点包，没有现成可靠仓库可一键装。需要重开 HAI 后在实例上从 **ModelScope / HF** 现找现装（见第 5 节步骤 A）。
+## 3. 本机已准备好的资产（在 D:\Aicomfyui\cloud\）
+- `_krisheetu_mirror.tar.gz` —— krisheetu Qwen 节点包源码镜像（重开 HAI 后 SFTP 到 `custom_nodes/ComfyUI_Qwen-Image`）
+- `_gguf_mirror.tar.gz` —— ComfyUI-GGUF 插件（已装实例，备恢复用）
+- `_ltx_mirror.tar.gz` —— LTXVideo 插件（已装实例，备恢复用）
+- `ssh_run.py`（paramiko SSH）、`sftp_upload.py`（SFTP）、`cloud_pipeline.py`、`check_cloud_nodes.py`
+- `dl_qwen_weights.sh` —— 实例侧权重续传脚本（`setsid bash /root/dl_qwen.sh`）
+- `peach_refs_prompts.json` / `ltx_p1_prompts.json` —— 提示词
+- **GitHub 仓库 `ai-comfyui` 的 main 分支**已推本手册 + cloud 脚本（orphan 分支 `peach_sync` 强推）
 
-### 2.3 本机（这台电脑）出网也受限
-- 可达：github.com（HTTP/API）、GitHub API（search/contents/base64 取文件）。
-- 不可达：git clone github（连接被重置）、raw.githubusercontent.com（000）、huggingface.co（000）。
-- → 本机**无法**把节点包源码抓下来 SFTP 给实例（git clone 被墙、HF 不通）。节点包只能**在实例侧从 HF/ModelScope 获取**。
-
-### 2.4 已确认可用的部分（不用重做）
-- ? **ComfyUI-GGUF** 已装实例（GGUF unet / text_encoder 加载器都在）。
-- ? **LTXVideo 插件**已解压安装（出视频用）。
-- ? 桃子锚图 `peach_role_v6.png` 已传实例 `input/`。
-- ? Qwen-Edit **权重下载已在进行**（实例后台 wget -c，约下完 4.2G/总 ~13G，关机不丢）。
-
----
-
-## 3. 实例文件落点（重开后仍在该系统盘）
-- `custom_nodes/ComfyUI-LTXVideo/` ?
-- `custom_nodes/ComfyUI-GGUF/` ?
-- `input/peach_role_v6.png` ?
-- `models/unet/qwen-image-edit-2511-Q4_K_M.gguf` ? 下载中（续传）
-- `models/text_encoders/Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf` ?
-- `models/text_encoders/mmproj-BF16.gguf` ?
-- `models/vae/qwen_image_vae.safetensors` ?（已下完 253M）
-
----
-
-## 4. cloud/ 目录（已推 GitHub，另一台电脑 clone 即得）
-| 文件 | 作用 |
-|---|---|
-| `ssh_run.py` | paramiko SSH 执行（密码走 `SSH_PASS` 环境变量，不落盘） |
-| `sftp_upload.py` | paramiko SFTP 上传 |
-| `cloud_pipeline.py` | 通用云端客户端（上传→提交→轮询→下载） |
-| `check_cloud_nodes.py` | 节点核对（--host） |
-| `dl_qwen_weights.sh` | Qwen-Edit 权重续传脚本（wget -c） |
-| `CLOUD_PIPELINE.md` | 完整执行手册 |
-| `ltx_p1_prompts.json` | p1 四段视频提示词（强制固定机位/原地） |
-| `peach_refs_prompts.json` | 多角度参考图提示词（B 步） |
-| `object_info.json` | 17:09 实例节点快照（已无 qwen 节点，见 2.2） |
-| `_gguf_mirror.tar.gz` | ComfyUI-GGUF 镜像（实例已装，备用） |
-| `_ltx_mirror.tar.gz` | LTXVideo 镜像（实例已装，备用） |
-
----
-
-## 5. 重开 HAI 后的执行步骤（按顺序）
-
-### A. 拿到节点包（解决 2.2 卡点）—— 本步最不确定，优先做
-1. 重开实例，SSH 进去。
-2. **先在实例上找 GGUF 兼容的 Qwen-Image 节点包**（实例能连 ModelScope/HF）：
-   ```bash
-   # 试 ModelScope（实例侧可达）
-   git clone https://www.modelscope.cn/models/<owner>/ComfyUI-Qwen-Image.git custom_nodes/ComfyUI-Qwen-Image
-   # 或 HF 上搜 Qwen-Image ComfyUI 节点（实例侧可达 huggingface.co）
-   git clone https://huggingface.co/<org>/ComfyUI-Qwen-Image custom_nodes/ComfyUI-Qwen-Image
+## 4. 重开 HAI 后续接步骤（按顺序）
+1. 用户发新 IP + SSH 密码。
+2. **续传权重**（实例侧，已下部分不丢）：
    ```
-   - 判断标准：节点文件里出现 `NODE_CLASS_MAPPINGS` 且加载的是 ComfyUI `MODEL` 对象（能接 `UnetLoaderGGUF` 的输出），**不是** diffusers pipeline。
-   - 若找不到 GGUF 兼容包 → 退路：下载官方 **fp8** 权重（`Comfy-Org/Qwen-Image-Edit_ComfyUI` 的 `qwen_image_edit_2509_fp8_*.safetensors` 等，实例能直连 HF）并**更新 ComfyUI 到带原生 Qwen 节点的版本**（同样需从 HF 获取 ComfyUI 源码），代价是 T4 16G 显存更吃紧。
-3. 装依赖（实例侧能 pip / 从 HF 镜像装的都行，避开 GitHub）。
+   ssh root@<IP>  # 密码用户给
+   cd /root/ComfyUI/models
+   setsid bash /root/dl_qwen.sh > /root/dl.log 2>&1 &
+   ```
+   （dl_qwen.sh 用 `wget -c` 续传 4 个权重；若脚本不在，按 CLOUD 里 dl_qwen_weights.sh 重建）
+3. **传节点包**（本机 → 实例）：
+   ```
+   python3 sftp_upload.py <IP> 22 root _krisheetu_mirror.tar.gz /root/ComfyUI/custom_nodes/_krisheetu_mirror.tar.gz
+   # 实例侧：cd /root/ComfyUI/custom_nodes && tar xzf _krisheetu_mirror.tar.gz && mv _krisheetu_mirror ComfyUI_Qwen-Image
+   ```
+4. **下多角度 LoRA**（实例侧，ModelScope 直连）：
+   ```
+   pip install modelscope  # 若未装
+   modelscope download fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA --local_dir /root/ComfyUI/models/loras/
+   ```
+5. **重启 ComfyUI** 加载新节点（HAI Jupyter 里 restart，或 kill + `python main.py --listen --port=6889`）。
+6. **验证节点**：拉 `object_info`，确认有 `QwenImageUNETLoader`/`QwenImageSampler`（文生图）等。
+7. **出图测试**：
+   - B 多角度参考图：桃子锚图 + qwenmultiangle 角度提示词（front/side/back/expression）→ QwenImageSampler（GGUF MODEL）出图，发用户评审。
+   - C 从头 p1 分镜图（s01–s05）：文字提示词 → QwenImageSampler 出图，发用户评审。
+8. 视频端 LTX 2.3 接桃子参考图 + 修复后提示词出视频（修复两个运镜问题）。
 
-### B. 续传权重（若关机期间没下完）
-```bash
-setsid bash /root/dl_qwen.sh > /root/dl.log 2>&1 &
-# dl_qwen.sh 用 wget -c，已下的 4.2G 不丢
-```
+## 5. 已知坑（务必避开）
+- 实例 **连不上 GitHub**（git clone 被重置）→ 节点包只能本机抓源码 SFTP；或实例从 ModelScope 下 LoRA/模型。
+- 本机 **连不上 HF**（hf_http:000）且 **GitHub API 限速 60/h** → 抓源码优先用 tarball/镜像，失败再等 API 恢复；镜像域名（ghfast.top/gh-proxy.com/gitclone.com/kgithub）本机可能可达。
+- Qwen-Image-Edit-2511 GGUF 是 `unsloth` 出的 Q4_K_M，放 `models/diffusion_models/`（krisheetu 的 QwenImageUNETLoader 读 diffusion_models 目录；GGUF 的 UnetLoaderGGUF 也读此目录，二者产出 MODEL 对象兼容）。
+- Qwen2.5-VL 文本编码器 GGUF 放 `models/text_encoders/`，用 ComfyUI-GGUF 的 CLIP loader 或 krisheetu 的 QwenImageCLIPLoader 加载（需实测确认吃 GGUF）。
 
-### C. 重启 ComfyUI 并验证节点
-- 重启命令见 `CLOUD_PIPELINE.md` 第 9 节（实例内 kill + main.py --listen --port=6889）。
-- 拉 `object_info`，确认出现 Qwen-Image 相关节点 + GGUF 节点。
-
-### D. 出 B 多角度参考图（评审闸门）
-- 用 `peach_role_v6.png` 作参考，按 `peach_refs_prompts.json` 出 正面/侧/背/表情 4 张，发用户预览，确认一致性。
-
-### E. 出 C p1 分镜图（评审闸门，从头重出）
-- 按 `ltx_p1_prompts.json` / `peach_refs_prompts.json` 重出 s01–s05，逐张发用户评审（用户强调「从头开始才能发现问题」）。
-
-### F. LTX 出视频 + 拼接验收
-- 吃分镜图 + 提示词出视频，修复第 1 节两个已知问题，ffmpeg 拼接。
-
----
-
-## 6. 另一台电脑衔接步骤
-1. `git clone https://github.com/mz20191223/ai-comfyui.git`
-2. 打开本 `STATE.md` 照第 5 节走。
-3. 开 HAI → 发 `新 IP + SSH 密码` 给我。
-4. 我执行 A→F。
-
----
-
-## 7. 待用户决策的开放问题
-- **图像生成器是否坚持 Qwen-Image-Edit？** 若节点包实在装不上，可退到「官方 fp8 权重 + 更新 ComfyUI」或换一个实例原生可跑的图像模型（风格会偏移，需你拍板）。
-- T4 16G 显存对 Qwen-Image（无论 GGUF Q4 还是 fp8）都偏紧，实测 OOM 时需降分辨率/启 offload。
+## 6. 待办（重开 HAI 后）
+- [ ] 确认本机 `_krisheetu_mirror.tar.gz` 克隆成功（后台任务 cBTcOj）
+- [ ] SFTP 传 krisheetu 包 + 续传权重
+- [ ] ModelScope 下 Multiple-Angles-LoRA
+- [ ] 重启验证 QwenImageSampler 节点 + GGUF MODEL 接入
+- [ ] 出 B/C 分镜图发评审
+- [ ] LTX 视频修复运镜
