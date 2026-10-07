@@ -1,0 +1,370 @@
+# 第1集：凌晨两点，Bug 成精了
+
+> 本集共14镜
+> 分镜图使用 GPT-Img2 生成（中文提示词）
+> 视频使用 MiniMax H3 生成（FL2VA / I2VA 模式，中文+英文提示词）
+> 角色参考图请在上传时附上"过客"参考图，并在每段提示词前保持"严格锁定参考图"的指令。
+
+---
+
+## 镜头1
+
+### 分镜图提示词（GPT-Img2 · 中文）
+
+> 你已收到角色参考图（主角"过客"），请严格锁定该图的所有外观特征，以下描述仅用于补充场景、光影、构图和情绪。
+>
+> 写实摄影风格，竖屏9:16比例。
+>
+> **请生成两张图，分别作为视频的首帧和尾帧：**
+>
+> **图A（首帧 · 起点 - 屏幕）**：
+> 深夜互联网公司工位上的显示器屏幕特写。屏幕为满屏红色警报，显示"P0故障"、"数据丢失风险"浮动弹窗，屏幕中央有亮红色倒计时数字"00:18:42"持续跳动。屏幕边缘略微可见键盘和桌面，背景为虚化的深色办公区。屏幕的红光是画面唯一主光源。
+>
+> **图B（尾帧 · 终点 - 正脸）**：
+> 主角过客的正脸特写，从额头到下巴。他的双眼瞪大，瞳孔中映出一团模糊跳动的红色光斑（倒计时红光反射，非清晰数字）。额头上布满细密汗珠，面部被红色底光照亮（光从正面和下方打来），眼窝下方有深色阴影。嘴唇微张，表情专注而紧绷。背景为虚化暗部。
+>
+> **统一风格**：写实摄影，电影级光影，微距质感，竖屏9:16。
+
+### 分镜视频提示词（MiniMax H3 · FL2VA · 中文自然语言版）
+
+> 以上传的图A为首帧、图B为尾帧，在两张图之间生成一段5秒竖屏视频。
+>
+> 从图A（满屏红色警报的显示器）开始，倒计时"00:18:42"每秒跳动递减。
+>
+> 镜头缓慢匀速推近，贴近屏幕表面，倒计时数字逐渐放大。镜头继续贴近直到红色警报光充满整个画面——除红光外一片模糊。
+>
+> 在红光充满全屏的瞬间，画面平滑过渡到主角眼睛的特写：红光即为他瞳孔中映出的倒计时红光倒影。红光在瞳孔表面跳动、聚焦，画面从瞳孔缓慢扩展，露出主角的正脸——眉头微蹙、神情疑惑（不知道屏幕为何突然报警），额头的汗珠，被红光照亮的面部。
+>
+> 全程一镜到底，匀速，红光转场处无硬切。
+
+### 分镜视频提示词（MiniMax H3 · FL2VA · 英文，供复制）
+
+> Generate a 5-second vertical video using Image A as the first frame and Image B as the last frame.
+>
+> Start with Image A (full-screen red alert monitor). The countdown "00:18:42" ticks down every second.
+>
+> The camera slowly pushes in toward the screen surface. The countdown numbers fill the frame and blur out until the red alert glow floods the entire screen — everything except the red light dissolves into soft focus.
+>
+> At the moment the frame is fully filled with red, it smoothly transitions into a close-up of the programmer's eye: the red light is the countdown's red reflection in his pupil. The red glow pulses and sharpens on the pupil's surface, then the shot slowly expands to reveal his face — slightly furrowed brows and a puzzled expression (not knowing why the screen suddenly alarmed), sweat on his forehead, face lit entirely by the red glow.
+>
+> One continuous smooth shot throughout, steady pacing, no hard cut at the red-light transition.
+
+---
+
+## 镜头2
+
+### 分镜图提示词（GPT-Img2 · 中文）
+
+> 你已收到角色参考图（主角"过客"），请严格锁定该图的所有外观特征。
+>
+> 写实摄影风格，竖屏9:16比例。
+>
+> 过客坐在工位前，身体猛地坐直，双手撑在桌面边缘，眼睛瞪大盯着屏幕。屏幕上倒计时"00:18:40"清晰可见。办公区深蓝黑色背景，台灯暖黄光从左上角照射，红色屏幕光从正面照亮面部，形成冷暖对冲。中近景构图，过客面部和上半身占据画面主要面积，嘴唇微张，额头有细密汗珠。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 中文自然语言版）
+
+> 参考上传的图片，生成一段4秒竖屏视频。
+>
+> 画面中过客坐在工位前，身体突然从微微前倾的状态猛地坐直挺起，双手同时撑到桌面边缘。他的眉头仍紧蹙，眼神从疑惑转为警觉，瞳孔猛地一缩，嘴唇微张，额头上的汗珠在红光中反光。屏幕上的倒计时已递减到"00:18:37"（承接镜头1末尾），并在坐直的瞬间跳变为"00:18:36"。
+>
+> 固定机位，无运镜。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 英文，供复制）
+
+> Generate a 4-second vertical video based on the uploaded reference image.
+>
+> The programmer is sitting at his desk. His body suddenly jolts upright from a slight forward lean. Both hands plant on the desk edge. His brow stays furrowed, his expression shifting from confusion to alertness, pupils snapping shut with a jerk, lips slightly parted. Sweat on his forehead glistens in the red light.
+>
+> The countdown on screen has already ticked down to "00:18:37" (carried over from the end of shot 1) and jumps to "00:18:36" the moment he lurches upright.
+>
+> Fixed camera, no movement.
+
+---
+
+## 镜头3
+
+### 分镜图提示词（GPT-Img2 · 中文）
+
+> 你已收到角色参考图（主角"过客"），请严格锁定该图的所有外观特征。
+>
+> 写实摄影风格，竖屏9:16比例。
+>
+> 过客的手机斜放在桌面上，屏幕刚被震动唤醒、亮起，显示公司内部群聊界面，群名为"【后端】线上紧急响应群"。消息快速刷新，连续三条消息清晰可见："谁动了线上？"、"最后一次提交是过客。"、"又是你？马上给结果！"。手机屏幕冷白色背光从下方照亮过客微微低头的下巴，背景为虚化的桌面暗部。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 中文自然语言版）
+
+> 参考上传的图片，生成一段4秒竖屏视频。
+>
+> 手机先在桌面轻微震动，发出一声提示音，屏幕亮起并弹出未读消息。第一条由林岚（线上负责人）发出："谁动了线上？"，带打字指示器动画；紧接着ops值班弹出"最后一次提交是过客。"；随后老板跟进"又是你？马上给结果！"。三条消息由三个不同的人发出，头像各不相同，连续滚动。过客被点名，眉头一紧，但他没有纠结于消息——他决定先自己查清原因。他点掉群聊窗口，消息界面退回手机主界面，把手机放到一边。手机上未读红点仍在角落持续脉冲闪烁。他抬眼转向电脑，正要开始动手查证时，手机屏幕又一次亮起，来电画面弹出"林岚（线上负责人）"，他动作一顿。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 英文，供复制）
+
+> Generate a 4-second vertical video based on the uploaded reference image.
+>
+> The phone vibrates softly on the desk with an alert chime. The screen lights up showing unread messages. Lin Lan (online lead) posts first: "谁动了线上？" with a typing indicator; then an ops on-call pops up "最后一次提交是过客。";
+>
+> followed immediately by his boss posting "又是你？马上给结果！". Three different senders with different avatars, messages scrolling in. Named in the chat, the programmer's brows tighten, but he doesn't dwell on the messages — he decides to find out the cause himself first. He dismisses the group chat, the screen returning to the home screen, and sets the phone aside. The unread badge keeps pulsing in the corner of the phone. He looks up toward the computer, but just as he's about to start investigating, the phone screen lights up again with an incoming call from "林岚（线上负责人）", and he freezes.
+
+---
+
+## 镜头4
+
+### 分镜图提示词（GPT-Img2 · 中文）
+
+> 你已收到角色参考图（主角"过客"），请严格锁定该图的所有外观特征。
+>
+> 写实摄影风格，竖屏9:16比例。
+>
+> 过客接听电话，手机举在耳边，屏幕显示来电人"林岚（线上负责人）"。面部特写，手机冷白底光从下方照亮下巴，台灯暖光补充左脸，红色屏幕光在背景闪烁。眉头紧锁，嘴唇抿紧，表情凝重而专注。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 中文自然语言版）
+
+> 参考上传的图片，生成一段4秒竖屏视频。
+>
+> 手机屏幕亮起，显示来电人"林岚（线上负责人）"并震动。过客按下接听键，将手机贴到耳边。电话里传来林岚急促的声音："线上客户投诉，收到订单异常消息，你那边怎么回事？"过客眉头紧锁，听完沉声回复"我马上处理"，果断挂断电话，把手机屏幕朝下扣在桌上。他的视线回到屏幕，双手回到键盘上，开始查证修复。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 英文，供复制）
+
+> Generate a 4-second vertical video based on the uploaded reference image.
+>
+> The phone screen lights up showing "林岚（线上负责人）" and vibrates. The programmer presses answer and brings the phone to his ear. Lin Lan's urgent voice comes through: "Customers are reporting order anomalies — what's going on on your end?" He listens with a furrowed brow, then replies in a low voice "我马上处理", hangs up decisively, and places the phone face-down on the desk. His gaze returns to the screen, both hands back on the keyboard, and he starts investigating and fixing.
+
+---
+
+## 镜头5
+
+### 分镜图提示词（GPT-Img2 · 中文）
+
+> 你已收到角色参考图（主角"过客"），请严格锁定该图的所有外观特征。
+>
+> 写实摄影风格，竖屏9:16比例。
+>
+> 终端窗口特写，黑色背景，绿色命令行文字快速滚动。显示"git revert HEAD"、"kubectl rollout undo"，最后一行"Error: rollback failed"红色高亮，"Memory usage: 99.9%"。过客的手指在键盘上快速敲击，侧脸在画面边缘。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 中文自然语言版）
+
+> 参考上传的图片，生成一段5秒竖屏视频。
+>
+> 终端窗口内，过客输入回滚命令"git revert HEAD"并按下回车，嘴里低声念道"先回滚……git revert HEAD"。屏幕弹出确认提示"Proceed with rollback? (yes/no)"，他果断输入"yes"并回车。命令开始执行，绿色命令行快速滚动。突然一行红色错误信息"Error: rollback failed"出现——回滚失败。过客咬牙低骂"该死，回滚失败……换kubectl rollout undo"，手指更快地敲击键盘，输入部署撤销命令"kubectl rollout undo"并回车，试图用另一种方式修复。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 英文，供复制）
+
+> Generate a 5-second vertical video based on the uploaded reference image.
+>
+> In the terminal window, the programmer types the rollback command "git revert HEAD" and presses Enter, muttering "先回滚……git revert HEAD". A confirmation prompt appears: "Proceed with rollback? (yes/no)". He decisively types "yes" and hits Enter. The command starts executing, green command lines scrolling rapidly. Suddenly a red error line "Error: rollback failed" appears — the rollback has failed. He grits his teeth and mutters "该死，回滚失败……换kubectl rollout undo", his fingers resuming typing even faster, entering the deployment undo command "kubectl rollout undo" and pressing Enter, trying another approach to fix it.
+
+---
+
+## 镜头6
+
+### 分镜图提示词（GPT-Img2 · 中文）
+
+> 写实摄影风格，竖屏9:16比例。纯UI画面，无人物入镜。
+>
+> 内存监控曲线图，绿色平稳线突然垂直上跳至顶部红色区域，曲线末端形成"巨口"形状。下方数据柱状图显示"订单数据"、"用户缓存"、"支付记录"逐条变灰消失。面板暗蓝色背景，红色曲线泛光。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 中文自然语言版）
+
+> 参考上传的图片，生成一段5秒竖屏视频。
+>
+> 内存监控面板上，绿色内存曲线暂时保持平稳（仿佛修复初见成效）。但紧接着曲线突然垂直上跳，冲入红色区域，曲线末端弯曲成巨口形状——内存彻底失控。画外传来过客焦急的声音"内存还在涨……订单数据没了！用户缓存也没了！"。下方柱状图从左到右依次变灰消失："订单数据""用户缓存""支付记录"逐条崩塌，每次消失时数据碎片化作光点从屏幕表面向屏幕外飞涌而出。巨口在数据完全消失后剧烈膨胀、破裂，从破裂处涌出暗紫色漩涡，漩涡穿过屏幕表面向屏幕外扩散，缓缓凝聚成一个悬浮的人形轮廓——内存黑洞王从屏幕中钻出，初现于显示器前方。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 英文，供复制）
+
+> Generate a 5-second vertical video based on the uploaded reference image.
+>
+> On the memory monitoring panel, the green memory curve holds steady briefly (as if the fix were working). Then it suddenly spikes vertically into the red zone, curling into a "mouth" shape at the top — memory has completely lost control. Off-screen, the programmer's anxious voice is heard: "内存还在涨……订单数据没了！用户缓存也没了！". The data bars below gray out and disappear one by one from left to right: "订单数据", "用户缓存", "支付记录" collapsing in sequence. As each vanishes, data fragments turn into light particles bursting outward from the screen surface. The mouth shape violently expands and ruptures. From the rupture, a dark purple vortex seeps through the screen surface, spreading outward and slowly coalescing into a hovering humanoid silhouette — the Memory Void King emerges from within the screen, appearing in front of the monitor.
+
+---
+
+## 镜头7
+
+### 分镜图提示词（GPT-Img2 · 中文）
+
+> 你已收到角色参考图（主角"过客"），请严格锁定该图的所有外观特征。
+>
+> 写实摄影风格，竖屏9:16比例。
+>
+> 过客与内存黑洞王对峙。内存黑洞王为半透明暗紫色漩涡人形巨怪，从屏幕中钻出，悬浮在显示器前方，胸口/衣服位置写有"内存黑洞王"四个字，数据光点从屏幕飞入其巨口。漩涡散发刺眼暗紫光芒，过客因光芒太强看不清，身体后仰，右手挡在眼前。暗紫色与红色光交织，过客面部半明半暗。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 中文自然语言版）
+
+> 参考上传的图片，生成一段5秒竖屏视频。
+>
+> 内存黑洞王从屏幕中钻出后悬浮在显示器前方，背对屏幕面向过客，漩涡人形的巨口缓缓张开，从巨口深处喷涌出暗紫色光芒，光芒越来越强。过客瞪大双眼，低声惊道"这是什么……"。白色数据粒子从过客面前的键盘和显示器中被巨口吸入，粒子流从下方涌入巨口，随巨口张开放大而加速变粗。过客被喷涌的暗紫强光刺得看不清，身体后仰，右手抬起挡在眼前。镜头短暂聚焦内存黑洞王胸口——衣服上写有"内存黑洞王"四个字，过客看清后倒吸一口凉气"内存黑洞王……"。屏幕剧烈闪烁。就在这时，屏幕右侧边缘开始渗出绿色窗口触手——第二个魔头的影子若隐若现。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 英文，供复制）
+
+> Generate a 5-second vertical video based on the uploaded reference image.
+>
+> Having emerged from the screen, the Memory Void King hovers in front of the monitor, back to the screen and facing the programmer. Its vortex-mouth slowly opens, and dark purple light pours out from deep within, growing intenser. The programmer's eyes widen and he gasps "这是什么……". White data particles are pulled from the keyboard and monitor in front of the programmer and sucked into the mouth, the particle stream surging upward into the mouth, accelerating and thickening as the mouth opens wider. Blinded by the surging dark purple glare, the programmer leans back and raises his right hand to shield his eyes. The camera briefly focuses on the Memory Void King's chest — the characters "内存黑洞王" are written on its garment. Seeing it clearly, he inhales sharply "内存黑洞王……". The screen flickers violently. Just then, green window-tendrils begin seeping from the right edge of the screen — the shadow of the second demon faintly appears.
+
+---
+
+## 镜头8
+
+### 分镜图提示词（GPT-Img2 · 中文）
+
+> 你已收到角色参考图（主角"过客"），请严格锁定该图的所有外观特征。
+>
+> 写实摄影风格，竖屏9:16比例。
+>
+> 屏幕特写，错误代码窗口以几何级数复制铺满屏幕，每个窗口显示相同错误日志。屏幕右侧的绿色窗口触手凝聚成一个模糊人形轮廓，身体由叠加的错误窗口构成，它的双手正不断从身体中剥离出错误窗口甩向屏幕各处。过客面部位于画面下部，眼睛映出闪烁窗口倒影，嘴唇微动似在自语。冷白与绿色混杂光，窗口叠加模糊。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 中文自然语言版）
+
+> 参考上传的图片，生成一段5秒竖屏视频。
+>
+> 屏幕右侧的绿色窗口触手凝聚成一个模糊人形——身体由叠加的错误窗口构成。它从身体中剥离出第一个错误窗口甩向屏幕，然后第二个、第三个，复制加速——每0.3秒一个新窗口。窗口堆叠铺满屏幕，边缘模糊。过客眼睛左右快速移动，看着窗口无限复制，低声嘀咕"难道这就是师傅说的……死循环妖？"。他伸手按下Alt+F4试图关闭窗口，屏幕却弹出红色提示"Permission denied: 权限不足，操作被拒绝"。过客一愣，低声疑惑"我的管理员权限……没了？"。复制在4秒时停止，屏幕形成密集窗口马赛克，模糊人形隐入马赛克之中。与此同时，显示器弹出"审计日志已删除""管理员权限转移中"的警告，一团灰黑雾气从过客身后悄然渗出——第三个魔头的影子若隐若现。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 英文，供复制）
+
+> Generate a 5-second vertical video based on the uploaded reference image.
+>
+> The green window-tendrils on the right side of the screen coalesce into a blurry humanoid figure, its body made of stacked error windows. It peels the first error window from its body and flings it across the screen, then a second, a third — replication accelerates, with a new window every 0.3 seconds. Windows stack and fill the screen, blurring at the edges. The programmer's eyes dart left and right, watching the endless replication, and he mutters "难道这就是师傅说的……死循环妖？". He reaches for Alt+F4 to close the windows, but the screen flashes a red alert: "Permission denied: 权限不足，操作被拒绝". He freezes, muttering in confusion "我的管理员权限……没了？". Replication stops at 4 seconds, leaving a dense mosaic of windows. The blurry figure melts into the mosaic. Meanwhile, the monitor pops up warnings "审计日志已删除" and "管理员权限转移中". A mass of gray-black mist quietly seeps out from behind the programmer — the shadow of the third demon faintly appears.
+
+---
+
+## 镜头9
+
+### 分镜图提示词（GPT-Img2 · 中文）
+
+> 你已收到角色参考图（主角"过客"），请严格锁定该图的所有外观特征。
+>
+> 写实摄影风格，竖屏9:16比例。
+>
+> 深夜办公区，过客工位台灯和显示器是唯一光源。一团灰黑雾气人形轮廓从过客身后接近，显示器弹出"审计日志已删除"、"管理员权限转移中"。侧面中景，黑雾人形仅边缘反光。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 中文自然语言版）
+
+> 参考上传的图片，生成一段5秒竖屏视频。
+>
+> 镜头8结尾渗出的灰黑雾气在过客身后缓缓凝聚成**一个完全实体的人形**——权限魅影（清晰面孔、正常人的嘴部结构、一双紫色发光的瞳仁），它无声地向过客逼近。过客正在盯着屏幕上的权限警告，突然感觉背后一阵寒意，动作一顿，低声说"谁还在……这台机器上？"。他回头张望，黑雾人形稍退，融入暗处。过客转回屏幕，黑雾再次凝聚逼近，一只灰雾之手缓缓伸向他的肩膀。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 英文，供复制）
+
+> Generate a 5-second vertical video based on the uploaded reference image.
+>
+> The gray-black mist from the end of Shot 8 slowly coalesces into a humanoid silhouette behind him — the Permission Phantom — silently approaching. The programmer is staring at the permission warnings on screen, then suddenly senses a chill behind him. He freezes and mutters "谁还在……这台机器上？". He turns to look; the mist figure retreats slightly, blending into the dark. He turns back to the screen, and the mist re-coalesces, a gray fog-hand slowly reaching toward his shoulder.
+
+---
+
+## 镜头10
+
+### 分镜图提示词（GPT-Img2 · 中文）
+
+> 你已收到角色参考图（主角"过客"），请严格锁定该图的所有外观特征。
+>
+> 写实摄影风格，竖屏9:16比例。
+>
+> 三大Bug魔头呈三角形包围过客——内存黑洞王（暗紫色漩涡）悬于上方，死循环妖（绿色窗口触手）从右侧屏幕伸出，权限魅影（**完全实体人形**）立于身后。三色光交织。过客坐在中心，握紧扶手。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 中文自然语言版）
+
+> 参考上传的图片，生成一段5秒竖屏视频。
+>
+> 三个魔头缓慢环绕过客旋转。暗紫、绿色、灰黑三色光依次扫过他的脸。过客看着三个魔头同时逼近，咬牙低声说"三个……一起来？"。三个魔头同时停顿，形成三角形，然后一起向过客猛扑过来。过客双手交叉挡在面前硬扛住冲击，被推得椅子后滑半截，但他咬牙撑住，猛地推开双臂将三魔震退，随即扑向键盘开始反击。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 英文，供复制）
+
+> Generate a 5-second vertical video based on the uploaded reference image.
+>
+> The three demons slowly orbit around the programmer. Purple, green, and gray-black lights sweep across his face in sequence. Seeing all three closing in, he grits his teeth and mutters "三个……一起来？". The three demons pause simultaneously, forming a triangle, then all three lunge at him at once. He crosses his arms in front to block the impact, his chair sliding back from the force, but he holds his ground, grits his teeth, shoves his arms outward to push the demons back, then throws himself at the keyboard to counterattack.
+
+---
+
+## 镜头11
+
+### 分镜图提示词（GPT-Img2 · 中文）
+
+> 写实摄影风格，竖屏9:16比例。
+>
+> 过客双手在键盘上高速敲击的特写，手指动态模糊。键盘背光从下方照亮手指。背景屏幕虚焦，显示快速滚动的命令行代码。画面整体冷调，键帽"Enter"、"Ctrl"等可见。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 中文自然语言版）
+
+> 参考上传的图片，生成一段4秒竖屏视频。
+>
+> 双手在键盘上快速飞舞，按键连续下压，过客嘴里急促地念着"既然如此……只有使出这招了……"。敲击速度逐渐加快。停顿半秒后手指重新加速。右手离开键盘抓鼠标点击两次后立即返回键盘继续敲击。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 英文，供复制）
+
+> Generate a 4-second vertical video based on the uploaded reference image.
+>
+> Hands fly across the keyboard, keys depressing continuously, the programmer mutters urgently "既然如此……只有使出这招了……". Typing speed gradually increases. A half-second pause, then fingers resume even faster. The right hand leaves the keyboard, grabs the mouse, clicks twice, and returns to the keyboard.
+
+---
+
+## 镜头12
+
+### 分镜图提示词（GPT-Img2 · 中文）
+
+> 你已收到角色参考图（主角"过客"），请严格锁定该图的所有外观特征。
+>
+> 写实摄影风格，竖屏9:16比例。
+>
+> 监控面板上，显示被黑洞王吞噬的数据恢复列表——"订单数据""用户缓存""支付记录"等条目全部红色"已损坏"状态，其中一个条目从红色闪烁转为稳定绿色，显示"订单数据：恢复成功"。周围其他条目全部红色。过客侧脸在画面左下角，瞳孔中映出绿色微光。暗蓝色背景，冷色光。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 中文自然语言版）
+
+> 参考上传的图片，生成一段4秒竖屏视频。
+>
+> 屏幕上显示恢复进度面板——正是镜头6中被黑洞王吞噬的数据列表，"订单数据""用户缓存""支付记录"等条目全部显示红色"已损坏"状态。过客飞速敲击键盘后，其中一个条目开始闪烁——红、红、绿，稳定为绿色，旁边出现"订单数据：恢复成功"。过客嘴角微微上扬，低声说"一个恢复了……还剩四十九个。加油，肯定可以的"。他深呼吸后重新开始敲键盘。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 英文，供复制）
+
+> Generate a 4-second vertical video based on the uploaded reference image.
+>
+> The screen shows a recovery progress panel — the same data list devoured by the Memory Void King in Shot 6: "订单数据", "用户缓存", "支付记录" and more, all marked red as "已损坏". After the programmer's rapid typing, one entry flickers — red, red, green — then stabilizes to solid green, with text appearing: "订单数据：恢复成功". The programmer's lips curl into a faint smile, and he murmurs "一个恢复了……还剩四十九个。加油，肯定可以的". He takes a breath and resumes typing.
+
+---
+
+## 镜头13
+
+### 分镜图提示词（GPT-Img2 · 中文）
+
+> 你已收到角色参考图（主角"过客"），请严格锁定该图的所有外观特征。
+>
+> 写实摄影风格，竖屏9:16比例。
+>
+> 三大魔头同时释放攻击——紫色冲击波、绿色窗口触手、灰色雾手搭肩。过客被冲击波掀得向后仰倒，椅子倾斜，双臂交叉护在面前。三色光爆炸瞬间，画面充满动态感。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 中文自然语言版）
+
+> 参考上传的图片，生成一段4秒竖屏视频。
+>
+> 三个魔头同时爆发出能量。紫色冲击波从上方轰下，绿色触手从右侧涌出，灰色雾手从身后搭上肩膀。过客被从上方轰下的冲击波压得整个人趴倒在桌面上，他双手撑住桌面勉强抬头，闷哼一声"呃！"。画面闪白一帧，然后他连同椅子翻倒在地。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 英文，供复制）
+
+> Generate a 4-second vertical video based on the uploaded reference image.
+>
+> The three demons explode with energy simultaneously. A purple shockwave blasts from above, green tendrils surge from the right, and a gray mist hand lands on his shoulder from behind. The downward shockwave slams the programmer face-down onto the desk. He braces his hands against the desk, barely lifting his head, grunting "呃！". A white flash occurs for one frame, then he and the chair crash to the floor.
+
+---
+
+## 镜头14
+
+### 分镜图提示词（GPT-Img2 · 中文）
+
+> 你已收到角色参考图（主角"过客"），请严格锁定该图的所有外观特征。
+>
+> 写实摄影风格，竖屏9:16比例。
+>
+> 屏幕全黑，中央浮现金色文字"检测到唯一适配者：过客。是否启动——大圣协议？"金色粒子特效，文字带有古老卷轴风格。过客坐在地上抬头看屏幕，暖黄台灯光从左上角照射，金色光晕映在他脸上，三魔在暗处半透明状。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 中文自然语言版）
+
+> 参考上传的图片，生成一段5秒竖屏视频。
+>
+> 过客坐在地上喘息，抬头看向已变黑的屏幕。金色文字逐字出现，每出现一字伴随一次柔和的金色脉冲。文字完全呈现后——"检测到唯一适配者：过客。是否启动——大圣协议？"，过客瞪大眼睛，低声念出"大圣……协议？"。一个"Yes/No"选项闪烁。过客从震惊中恢复，表情转为坚定。他看向三个魔头（画面外），再看向屏幕，然后伸手触摸屏幕上的金色文字。
+
+### 分镜视频提示词（MiniMax H3 · I2VA · 英文，供复制）
+
+> Generate a 5-second vertical video based on the uploaded reference image.
+>
+> The programmer sits on the floor catching his breath, looking up at the now-black screen. Golden text appears character by character, each with a soft golden pulse. After the full text appears — "检测到唯一适配者：过客。是否启动——大圣协议？" — his eyes widen and he reads aloud "大圣……协议？". A "Yes/No" option blinks. The programmer's expression shifts from shock to resolve. He glances at the three demons (off-screen), then back at the screen, and reaches his hand toward the golden text.
+
+---
+
+**第1集完**

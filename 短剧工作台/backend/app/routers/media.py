@@ -1,0 +1,230 @@
+"""媒体文件服务：预览 / 浏览 / 搜索 / 上传"""
+from __future__ import annotations
+
+import mimetypes
+import shutil
+from pathlib import Path
+
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
+
+from ..config import STORAGE_DIR, classify_ext
+from ..core import db
+from ..services import file_store
+
+router = APIRouter(prefix="/api/media", tags=["media"])
+
+IMAGE_EXT = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif"}
+
+
+def _allowed_roots(project_id: int | None = None) -> list[Path]:
+    roots: list[Path] = [STORAGE_DIR]
+    sql = "SELECT * FROM projects WHERE archived=0"
+    params: tuple = ()
+    if project_id:
+        sql = "SELECT * FROM projects WHERE id=?"
+        params = (project_id,)
+    for p in db.query(sql, params):
+        for k in ("workspace_dir", "doc_dir", "ref_dir", "keyframe_dir", "video_dir", "tail_dir", "audio_dir"):
+            v = p.get(k)
+            if v:
+                roots.append(Path(v))
+    return roots
+
+
+def _check_path(path: str, project_id: int | None = None) -> Path:
+    p = Path(path)
+    if not p.exists():
+        raise HTTPException(404, f"文件不存在：{path}")
+    try:
+        rp = p.resolve()
+    except OSError as e:
+        raise HTTPException(400, str(e)) from e
+    for root in _allowed_roots(project_id):
+        try:
+            rp.relative_to(root.resolve())
+            return rp
+        except (ValueError, OSError):
+            continue
+    raise HTTPException(403, "路径不在项目允许的目录范围内")
+
+
+@router.get("/file")
+def get_file(path: str = Query(...), project_id: int | None = None):
+    p = _check_path(path, project_id)
+    media = mimetypes.guess_type(p.name)[0] or "application/octet-stream"
+    return FileResponse(str(p), media_type=media, filename=p.name)
+
+
+@router.get("/thumb")
+def get_thumb(path: str = Query(...), size: int = 320, project_id: int | None = None):
+    """生成缩略图缓存（jpg），用于列表快速加载。"""
+    p = _check_path(path, project_id)
+    if p.suffix.lower() not in IMAGE_EXT and classify_ext(p) != "image":
+        p2 = Path(p)
+        raise HTTPException(400, "只支持图片缩略图")
+    cache_dir = STORAGE_DIR / "thumbs"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    # 缓存 key 带上源文件的 mtime+size：源图被同名覆盖（重出图换了内容）后 key 会变，
+    # 自动重新生成，不会再把旧缩略图喂给界面。
+    try:
+        st = p.stat()
+        stamp = f"{st.st_mtime_ns}-{st.st_size}"
+    except OSError:
+        stamp = "0-0"
+    out = cache_dir / f"{abs(hash((str(p), size, stamp)))}.jpg"
+    if not out.exists():
+        try:
+            from PIL import Image
+
+            with Image.open(p) as im:
+                im = im.convert("RGB")
+                im.thumbnail((size, size))
+                im.save(out, "JPEG", quality=82)
+        except Exception as e:  # noqa: BLE001
+            raise HTTPException(500, f"缩略图生成失败：{e}") from e
+    # 缩略图内容会随源文件变、URL 却不变：禁掉强缓存，让浏览器按 etag 走条件请求
+    return FileResponse(str(out), media_type="image/jpeg",
+                        headers={"Cache-Control": "no-cache"})
+
+
+@router.get("/meta")
+def file_meta(path: str = Query(...), project_id: int | None = None) -> dict:
+    p = _check_path(path, project_id)
+    return {"path": str(p), **file_store.probe(p)}
+
+
+@router.get("/roots")
+def roots(project_id: int | None = None) -> list[dict]:
+    out = []
+    for r in _allowed_roots(project_id):
+        out.append({"path": str(r), "exists": r.exists(), "name": r.name})
+    return out
+
+
+@router.get("/browse")
+def browse(
+    dir: str = Query(...),
+    kind: str | None = None,
+    project_id: int | None = None,
+    limit: int = 500,
+) -> dict:
+    d = Path(dir)
+    if not d.exists():
+        raise HTTPException(404, f"目录不存在：{dir}")
+    if not d.is_dir():
+        raise HTTPException(400, "不是目录")
+    try:
+        d.resolve().relative_to(STORAGE_DIR.resolve())
+    except (ValueError, OSError):
+        ok = any(
+            str(d.resolve()).startswith(str(r.resolve()))
+            for r in _allowed_roots(project_id)
+            if r.exists()
+        )
+        if not ok:
+            raise HTTPException(403, "目录不在允许范围内")
+    items = []
+    for f in sorted(d.iterdir()):
+        if len(items) >= limit:
+            break
+        if f.is_dir():
+            items.append({"name": f.name, "path": str(f), "is_dir": True, "kind": "dir"})
+            continue
+        k = classify_ext(f)
+        if kind and k != kind:
+            continue
+        try:
+            st = f.stat()
+        except OSError:
+            continue
+        items.append({
+            "name": f.name, "path": str(f), "is_dir": False, "kind": k,
+            "size_bytes": st.st_size, "mtime": st.st_mtime,
+        })
+    return {"dir": str(d), "items": items, "count": len(items)}
+
+
+@router.get("/search")
+def search(name: str = Query(...), project_id: int | None = None, kind: str | None = None) -> list[dict]:
+    """按文件名在项目素材目录里搜索（支持模糊）。"""
+    out = []
+    needle = name.lower()
+    seen = set()
+    for root in _allowed_roots(project_id):
+        if not root.exists() or not root.is_dir():
+            continue
+        try:
+            for f in root.rglob("*"):
+                if len(out) >= 300:
+                    break
+                if not f.is_file():
+                    continue
+                if needle not in f.name.lower():
+                    continue
+                k = classify_ext(f)
+                if kind and k != kind:
+                    continue
+                key = str(f.resolve()).lower()
+                if key in seen:
+                    continue
+                seen.add(key)
+                out.append({"name": f.name, "path": str(f.resolve()), "kind": k,
+                            "size_bytes": f.stat().st_size if f.exists() else None})
+        except (OSError, PermissionError):
+            continue
+    return out
+
+
+@router.post("/upload")
+async def upload(
+    file: UploadFile = File(...),
+    dest_dir: str | None = Query(None),
+    project_id: int | None = None,
+) -> dict:
+    target_dir = Path(dest_dir) if dest_dir else (STORAGE_DIR / "uploads")
+    target_dir.mkdir(parents=True, exist_ok=True)
+    name = Path(file.filename or "upload.bin").name
+    dst = target_dir / name
+    i = 1
+    while dst.exists():
+        dst = target_dir / f"{Path(name).stem}_{i}{Path(name).suffix}"
+        i += 1
+    with open(dst, "wb") as f:
+        shutil.copyfileobj(file.file, f)
+    fid = file_store.index_file(dst)
+    return {"ok": True, "path": str(dst), "file_id": fid, "name": dst.name, **file_store.probe(dst)}
+
+
+class ClassifyIn(BaseModel):
+    path: str
+
+
+@router.post("/classify")
+def classify(body: ClassifyIn) -> dict:
+    from ..services import naming
+
+    p = Path(body.path)
+    return {
+        "name": p.name,
+        "kind": classify_ext(p),
+        "guess_asset_name": file_store.guess_asset_name(p.name),
+        "guess_asset_type": file_store.guess_asset_type(p.name),
+        "is_placeholder": file_store.is_placeholder(p.name),
+        "shot_code_guess": _shot_code_guess(p.name),
+    }
+
+
+def _shot_code_guess(file_name: str) -> str | None:
+    """0114b2_tail.jpg → 14b-2"""
+    import re
+
+    m = re.match(r"01(\d{2})([a-z]?)(\d?)(?:_tail)?\.", file_name, re.I)
+    if not m:
+        return None
+    num, letter, sub = m.group(1), m.group(2) or "", m.group(3) or ""
+    code = str(int(num)) + letter.lower()
+    if sub:
+        code += f"-{sub}"
+    return code

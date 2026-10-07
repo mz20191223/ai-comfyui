@@ -1,0 +1,122 @@
+<template>
+  <div v-if="data">
+    <div class="row wrap">
+      <div class="card col" style="min-width: 260px">
+        <h3>全片进度</h3>
+        <div class="kv">
+          <div class="k">总镜头</div><div class="v">{{ data.total_shots }} 个</div>
+          <div class="k">总时长</div><div class="v">{{ fmtDur(data.total_duration_sec) }}</div>
+          <div class="k">未解决问题</div>
+          <div class="v">
+            <span :class="data.open_issues ? 'pill err' : 'pill ok'">{{ data.open_issues }} 条</span>
+          </div>
+        </div>
+      </div>
+      <div class="card col" style="min-width: 300px">
+        <h3>创作流水线</h3>
+        <div v-if="pipeline">
+          <div v-for="(s, k) in pipeline.steps" :key="k" class="pipe-row">
+            <span class="dot" :class="s.done ? 'ok' : 'gray'"></span>
+            <span style="flex:1">{{ s.label }}</span>
+            <span class="tiny muted">{{ fmtDetail(s.detail) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>分集状态</h3>
+      <el-table :data="data.episodes" size="small">
+        <el-table-column label="集" width="70">
+          <template #default="{ row }">第 {{ row.number }} 集</template>
+        </el-table-column>
+        <el-table-column prop="title" label="标题" min-width="140" />
+        <el-table-column prop="shots" label="镜头" width="70" />
+        <el-table-column label="已出片" width="90">
+          <template #default="{ row }">
+            <span :class="row.produced ? 'pill ok' : 'pill gray'">{{ row.produced }} / {{ row.shots }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="生成中" width="90">
+          <template #default="{ row }">
+            <span v-if="row.producing" class="pill run">{{ row.producing }}</span>
+            <span v-else class="muted tiny">—</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="duration_sec" label="时长(s)" width="90" />
+        <el-table-column label="操作" width="230">
+          <template #default="{ row }">
+            <div class="op-row">
+              <el-button size="small" text @click="$router.push(`/p/${pid}/board?ep=${row.episode_id}`)">看板</el-button>
+              <el-button size="small" text @click="plan(row.episode_id)">生产方案</el-button>
+              <el-button size="small" text @click="$router.push(`/p/${pid}/timeline?ep=${row.episode_id}`)">合成</el-button>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
+
+    <el-dialog v-model="showPlan" title="生成方案预审" width="820px">
+      <div v-if="planData">
+        <div class="mb8">
+          <span class="pill ok">就绪 {{ planData.summary.ready }}</span>
+          <span class="pill warn" v-if="planData.summary.at_risk">有风险 {{ planData.summary.at_risk }}</span>
+          <span class="pill gray">预计 {{ fmtDur(planData.summary.total_duration_sec) }}</span>
+        </div>
+        <el-table :data="planData.shots" size="small" max-height="480">
+          <el-table-column prop="shot_code" label="镜号" width="70" />
+          <el-table-column prop="recommended_mode" label="建议模式" width="140" />
+          <el-table-column prop="duration_sec" label="时长" width="60" />
+          <el-table-column prop="ref_count" label="参考图" width="70" />
+          <el-table-column prop="audio_sec" label="音频(s)" width="80" />
+          <el-table-column label="风险" min-width="180">
+            <template #default="{ row }">
+              <span v-if="!row.risks.length" class="pill ok">就绪</span>
+              <span v-for="r in row.risks" :key="r" class="pill warn" style="margin-right:4px">{{ r }}</span>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </el-dialog>
+  </div>
+  <div v-else class="empty">加载中…</div>
+</template>
+
+<script setup>
+import { onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
+import { api } from '../api'
+
+const route = useRoute()
+const pid = Number(route.params.pid)
+const data = ref(null)
+const pipeline = ref(null)
+const showPlan = ref(false)
+const planData = ref(null)
+
+function fmtDur(s) {
+  if (!s) return '0s'
+  const m = Math.floor(s / 60)
+  return m ? `${m}分${Math.round(s % 60)}秒` : `${Math.round(s)}秒`
+}
+function fmtDetail(d) {
+  if (d === undefined || d === null) return ''
+  return typeof d === 'object' ? Object.entries(d).map(([k, v]) => `${k}:${v}`).join(' ') : d
+}
+
+async function load() {
+  data.value = await api.overview(pid)
+  pipeline.value = await api.pipeline(pid)
+}
+
+async function plan(eid) {
+  planData.value = await api.productionPlan(eid)
+  showPlan.value = true
+}
+
+onMounted(load)
+</script>
+
+<style scoped>
+.pipe-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: var(--fs-sm); }
+</style>

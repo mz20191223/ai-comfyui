@@ -1,0 +1,167 @@
+{
+  "version": "1.0",
+  "id": "01a023a9-ef1b-72a2-ba23-b19bb2991119",
+  "name": "资料类",
+  "description": "",
+  "type": "custom",
+  "createdAt": "2026-08-21T09:32:14.491Z",
+  "updatedAt": "2026-08-21T09:32:14.491Z",
+  "stats": {
+    "assetCount": 16,
+    "totalSize": 123683,
+    "byKind": {
+      "image": 0,
+      "video": 0,
+      "audio": 0,
+      "text": 16,
+      "document": 0
+    }
+  },
+  "metadata": {},
+  "attachments": [
+    {
+      "id": "a-000",
+      "path": "attachments/0_creative-plan.md",
+      "originalFilename": "creative-plan.md",
+      "kind": "text",
+      "byteSize": 3858,
+      "ord": 0,
+      "meta": {}
+    },
+    {
+      "id": "a-001",
+      "path": "attachments/1_characters.md",
+      "originalFilename": "characters.md",
+      "kind": "text",
+      "byteSize": 5071,
+      "ord": 1,
+      "meta": {}
+    },
+    {
+      "id": "a-002",
+      "path": "attachments/2_episode-directory.md",
+      "originalFilename": "episode-directory.md",
+      "kind": "text",
+      "byteSize": 5455,
+      "ord": 2,
+      "meta": {}
+    },
+    {
+      "id": "a-003",
+      "path": "attachments/3_ep001-凌晨两点-Bug成精了.md",
+      "originalFilename": "ep001-凌晨两点-Bug成精了.md",
+      "kind": "text",
+      "byteSize": 8125,
+      "ord": 3,
+      "meta": {}
+    },
+    {
+      "id": "a-004",
+      "path": "attachments/4_ep002-我这一棒叫代码重构.md",
+      "originalFilename": "ep002-我这一棒叫代码重构.md",
+      "kind": "text",
+      "byteSize": 10632,
+      "ord": 4,
+      "meta": {}
+    },
+    {
+      "id": "a-005",
+      "path": "attachments/5_ep001-凌晨两点-Bug成精了.md",
+      "originalFilename": "ep001-凌晨两点-Bug成精了.md",
+      "kind": "text",
+      "byteSize": 8125,
+      "ord": 5,
+      "meta": {}
+    },
+    {
+      "id": "a-006",
+      "path": "attachments/6_ep003-如意金箍棒终极调试.md",
+      "originalFilename": "ep003-如意金箍棒终极调试.md",
+      "kind": "text",
+      "byteSize": 10511,
+      "ord": 6,
+      "meta": {}
+    },
+    {
+      "id": "a-007",
+      "path": "attachments/7_三集质量自检报告.md",
+      "originalFilename": "三集质量自检报告.md",
+      "kind": "text",
+      "byteSize": 6529,
+      "ord": 7,
+      "meta": {}
+    },
+    {
+      "id": "a-008",
+      "path": "attachments/8_大圣协议-程序员终极幻想-完整剧本.md",
+      "originalFilename": "大圣协议-程序员终极幻想-完整剧本.md",
+      "kind": "text",
+      "byteSize": 14348,
+      "ord": 8,
+      "meta": {}
+    },
+    {
+      "id": "a-009",
+      "path": "attachments/9_README-分集索引.md",
+      "originalFilename": "README-分集索引.md",
+      "kind": "text",
+      "byteSize": 1529,
+      "ord": 9,
+      "meta": {}
+    },
+    {
+      "id": "a-010",
+      "path": "attachments/10_制作包说明.md",
+      "originalFilename": "制作包说明.md",
+      "kind": "text",
+      "byteSize": 2991,
+      "ord": 10,
+      "meta": {}
+    },
+    {
+      "id": "a-011",
+      "path": "attachments/11_export-status.md",
+      "originalFilename": "export-status.md",
+      "kind": "text",
+      "byteSize": 1581,
+      "ord": 11,
+      "meta": {}
+    },
+    {
+      "id": "a-012",
+      "path": "attachments/12_ep001-分镜细化.md",
+      "originalFilename": "ep001-分镜细化.md",
+      "kind": "text",
+      "byteSize": 12487,
+      "ord": 12,
+      "meta": {}
+    },
+    {
+      "id": "a-013",
+      "path": "attachments/13_ep002-分镜细化.md",
+      "originalFilename": "ep002-分镜细化.md",
+      "kind": "text",
+      "byteSize": 12644,
+      "ord": 13,
+      "meta": {}
+    },
+    {
+      "id": "a-014",
+      "path": "attachments/14_ep003-分镜细化.md",
+      "originalFilename": "ep003-分镜细化.md",
+      "kind": "text",
+      "byteSize": 13081,
+      "ord": 14,
+      "meta": {}
+    },
+    {
+      "id": "a-015",
+      "path": "attachments/15_制作计划 — 第1-3集.md",
+      "originalFilename": "制作计划 — 第1-3集.md",
+      "kind": "text",
+      "byteSize": 6716,
+      "ord": 15,
+      "meta": {}
+    }
+  ]
+}

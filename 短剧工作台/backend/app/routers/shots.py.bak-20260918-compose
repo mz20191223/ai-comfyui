@@ -1,0 +1,952 @@
+"""镜头：列表 / 详情 / 编辑 / 参考图槽位 / 确认闸门 / 生成"""
+from __future__ import annotations
+
+import shutil
+from pathlib import Path
+
+from fastapi import APIRouter, File, HTTPException, UploadFile
+from pydantic import BaseModel
+
+from ..config import DEFAULT_DISCARD_DIR
+from ..core import db
+from ..core.db import jdumps, jloads
+from ..executors import task_runner
+from ..services import file_store, hooks_service, lint_service, naming, shot_service, wizard_service
+
+router = APIRouter(prefix="/api", tags=["shots"])
+
+DETAIL_FIELDS = {
+    "camera_shot", "angle", "movement", "subject_position", "camera_note", "duration_sec",
+    "duration_note", "gen_mode", "api_style", "resolution", "override_ratio", "seed",
+    "summary", "action_beats", "hard_constraints", "mood_tags", "vfx_note", "audio_note",
+    "post_audio_note", "video_prompt", "video_prompt_prefix", "image_prompt", "image_negative",
+    "image_target_name", "image_refs_note", "image_is_optional", "video_template_id", "image_template_id",
+}
+SHOT_FIELDS = {"shot_code", "title", "sort_order", "script_excerpt", "notes",
+               "thumbnail_path", "final_video_path", "skip_extraction"}
+
+
+@router.get("/episodes/{episode_id}/shots")
+def list_shots(episode_id: int) -> list[dict]:
+    return shot_service.list_shots(episode_id)
+
+
+@router.get("/shots/{shot_id}")
+def get_shot(shot_id: int) -> dict:
+    b = shot_service.get_shot(shot_id)
+    if not b:
+        raise HTTPException(404, "镜头不存在")
+    d = b["detail"]
+    if isinstance(d.get("action_beats"), str):
+        d["beats"] = jloads(d["action_beats"], [])
+    if isinstance(d.get("hard_constraints"), str):
+        d["constraints"] = jloads(d["hard_constraints"], [])
+    if isinstance(d.get("mood_tags"), str):
+        d["moods"] = jloads(d["mood_tags"], [])
+    return b
+
+
+class ShotPatch(BaseModel):
+    shot: dict | None = None
+    detail: dict | None = None
+    note: str | None = None
+
+
+def _snapshot(shot_id: int, kind: str, content: str | None, note: str | None) -> None:
+    if not content:
+        return
+    last = db.query_one(
+        "SELECT content FROM prompt_revisions WHERE target_kind=? AND target_id=? ORDER BY id DESC LIMIT 1",
+        (kind, shot_id),
+    )
+    if last and last["content"] == content:
+        return
+    db.execute(
+        "INSERT INTO prompt_revisions(target_kind, target_id, content, note, source) VALUES(?,?,?,?,?)",
+        (kind, shot_id, content, note or "手动编辑", "manual"),
+    )
+
+
+@router.patch("/shots/{shot_id}")
+def patch_shot(shot_id: int, body: ShotPatch) -> dict:
+    s = db.query_one("SELECT * FROM shots WHERE id=?", (shot_id,))
+    if not s:
+        raise HTTPException(404, "镜头不存在")
+
+    if body.shot:
+        vals = {k: v for k, v in body.shot.items() if k in SHOT_FIELDS}
+        if vals:
+            cols = ", ".join(f"{k}=?" for k in vals)
+            db.execute(
+                f"UPDATE shots SET {cols}, updated_at=datetime('now','localtime') WHERE id=?",
+                list(vals.values()) + [shot_id],
+            )
+
+    if body.detail:
+        vals = {}
+        for k, v in body.detail.items():
+            if k not in DETAIL_FIELDS:
+                continue
+            vals[k] = jdumps(v) if k in ("action_beats", "hard_constraints", "mood_tags") and not isinstance(v, str) else v
+        if vals:
+            exists = db.query_one("SELECT shot_id FROM shot_details WHERE shot_id=?", (shot_id,))
+            if exists:
+                cols = ", ".join(f"{k}=?" for k in vals)
+                db.execute(
+                    f"UPDATE shot_details SET {cols}, updated_at=datetime('now','localtime') WHERE shot_id=?",
+                    list(vals.values()) + [shot_id],
+                )
+            else:
+                cols = ", ".join(vals.keys())
+                ph = ", ".join("?" for _ in vals)
+                db.execute(
+                    f"INSERT INTO shot_details(shot_id, {cols}) VALUES(?, {ph})",
+                    [shot_id] + list(vals.values()),
+                )
+            if "video_prompt" in vals:
+                _snapshot(shot_id, "shot_video", vals["video_prompt"], body.note)
+            if "image_prompt" in vals:
+                _snapshot(shot_id, "shot_image", vals["image_prompt"], body.note)
+    return get_shot(shot_id)
+
+
+# ---------------- 参考图槽位 ----------------
+
+def _project_id_of_shot(shot_id: int) -> int | None:
+    """镜头 → 集 → 项目。跨项目护栏要用。"""
+    row = db.query_one(
+        "SELECT e.project_id FROM shots s JOIN episodes e ON e.id=s.episode_id WHERE s.id=?",
+        (shot_id,),
+    )
+    return row["project_id"] if row else None
+
+
+class RefSlotIn(BaseModel):
+    target_side: str = "video"          # video / image
+    slot_index: int | None = None
+    file_name: str | None = None
+    asset_id: int | None = None
+    asset_image_id: int | None = None
+    role: str | None = None
+    take_note: str | None = None
+    ref_version: str | None = None
+
+
+@router.post("/shots/{shot_id}/refs")
+def upsert_ref(shot_id: int, body: RefSlotIn) -> dict:
+    shot = db.query_one("SELECT * FROM shots WHERE id=?", (shot_id,))
+    if not shot:
+        raise HTTPException(404, "镜头不存在")
+    fname = body.file_name
+    image_id = body.asset_image_id
+    asset_id = body.asset_id
+    if image_id and not fname:
+        ai = db.query_one("SELECT * FROM asset_images WHERE id=?", (image_id,))
+        if ai:
+            fname = ai["file_name"]
+            asset_id = asset_id or ai["asset_id"]
+    if not fname:
+        raise HTTPException(400, "需要 file_name 或 asset_image_id")
+
+    # 跨项目护栏：镜头只能引用「同项目」的资产，避免多项目时把别人的角色/场景挂进来
+    proj_id = _project_id_of_shot(shot_id)
+    if asset_id:
+        a = db.query_one("SELECT project_id, name FROM assets WHERE id=?", (asset_id,))
+        if not a:
+            raise HTTPException(404, "资产不存在")
+        if proj_id and a["project_id"] != proj_id:
+            raise HTTPException(
+                400, f"资产「{a['name']}」属于其他项目（#{a['project_id']}），不能挂到本项目镜头里"
+            )
+
+    idx = body.slot_index
+    if idx is None:
+        # 槽位基数两侧不同：视频侧 slot 0 = ref_image_0（= Image 1），分镜图侧 slot 1 = 参考图1。
+        # 起点必须跟着 side 走，否则 UI 新挂第一张分镜图参考图会拿到 slot 0（显示成「参考图0」）。
+        row = db.query_one(
+            "SELECT COALESCE(MAX(slot_index), ?) + 1 AS n FROM shot_asset_links "
+            "WHERE shot_id=? AND target_side=?",
+            (0 if body.target_side == "image" else -1, shot_id, body.target_side),
+        )
+        idx = row["n"]
+    exists = db.query_one(
+        "SELECT id FROM shot_asset_links WHERE shot_id=? AND target_side=? AND slot_index=?",
+        (shot_id, body.target_side, idx),
+    )
+    if exists:
+        db.execute(
+            """UPDATE shot_asset_links SET file_name=?, asset_id=?, asset_image_id=?, role=?, take_note=?,
+                   ref_version=?, raw_text=? WHERE id=?""",
+            (fname, asset_id, image_id, body.role, body.take_note, body.ref_version, body.take_note, exists["id"]),
+        )
+    else:
+        db.execute(
+            """INSERT INTO shot_asset_links(shot_id, asset_id, asset_image_id, role, slot_index,
+                   target_side, ref_version, take_note, file_name, raw_text)
+               VALUES(?,?,?,?,?,?,?,?,?,?)""",
+            (shot_id, asset_id, image_id, body.role, idx, body.target_side,
+             body.ref_version, body.take_note, fname, body.take_note),
+        )
+    return get_shot(shot_id)
+
+
+@router.delete("/shots/{shot_id}/refs/{link_id}")
+def delete_ref(shot_id: int, link_id: int) -> dict:
+    db.execute("DELETE FROM shot_asset_links WHERE id=? AND shot_id=?", (link_id, shot_id))
+    return get_shot(shot_id)
+
+
+@router.post("/shots/{shot_id}/refs/reorder")
+def reorder_refs(shot_id: int, body: dict) -> dict:
+    side = body.get("target_side", "video")
+    order: list[int] = body.get("link_ids") or []
+    base = 1 if side == "image" else 0      # 同 upsert_ref：分镜图侧 1 起、视频侧 0 起
+    for i, lid in enumerate(order):
+        db.execute(
+            "UPDATE shot_asset_links SET slot_index=? WHERE id=? AND shot_id=? AND target_side=?",
+            (base + i, lid, shot_id, side),
+        )
+    return get_shot(shot_id)
+
+
+# ---------------- 音频素材（镜头视频配置时上传） ----------------
+
+class ShotAudioIn(BaseModel):
+    file_name: str
+    line_id: int | None = None
+    role_name: str | None = None
+
+
+def _shot_project(shot_id: int) -> dict | None:
+    shot = db.query_one("SELECT * FROM shots WHERE id=?", (shot_id,))
+    if not shot:
+        return None
+    ep = db.query_one("SELECT * FROM episodes WHERE id=?", (shot["episode_id"],))
+    if not ep:
+        return None
+    return db.query_one("SELECT * FROM projects WHERE id=?", (ep["project_id"],))
+
+
+@router.post("/shots/{shot_id}/audio")
+def set_shot_audio(shot_id: int, body: ShotAudioIn) -> dict:
+    """挂上本镜的音频素材（配音在外部生成，工作台只登记 + mutagen 精测时长）。
+
+    挂好后该文件即作为 ref_audio_0 随视频请求交给模型，工作台不生成语音。
+    """
+    project = _shot_project(shot_id)
+    if not project:
+        raise HTTPException(404, "镜头不存在")
+    name = Path(body.file_name).name
+    real = file_store.resolve(body.file_name, project)
+    if not real:
+        raise HTTPException(404, f"音频文件找不到：{body.file_name}")
+
+    measured = file_store.audio_duration(real)
+    line = None
+    if body.line_id:
+        line = db.query_one(
+            "SELECT * FROM shot_dialog_lines WHERE id=? AND shot_id=?", (body.line_id, shot_id)
+        )
+    if not line:
+        line = db.query_one(
+            "SELECT * FROM shot_dialog_lines WHERE shot_id=? ORDER BY line_index, id LIMIT 1", (shot_id,)
+        )
+    if line:
+        db.execute(
+            "UPDATE shot_dialog_lines SET audio_file=?, audio_measured_sec=?, "
+            "role_name=COALESCE(?, role_name) WHERE id=?",
+            (name, measured, body.role_name, line["id"]),
+        )
+    else:
+        db.execute(
+            "INSERT INTO shot_dialog_lines(shot_id, line_index, role_name, audio_file, audio_measured_sec) "
+            "VALUES(?,?,?,?,?)",
+            (shot_id, 1, body.role_name, name, measured),
+        )
+    return {
+        "ok": True, "file_name": name, "path": str(real), "measured_sec": measured,
+        "audit": hooks_service.audit_audio(shot_id), "shot": get_shot(shot_id),
+    }
+
+
+@router.delete("/shots/{shot_id}/audio")
+def clear_shot_audio(shot_id: int, line_id: int | None = None) -> dict:
+    """摘掉音频素材：给 line_id 只摘那一行台词，不给则摘掉整镜（全部台词行）。
+
+    一个镜头可以挂多段音频（分句台词各挂一段，依次作为 ref_audio_0/1/... 交给模型），
+    所以按行摘是常态操作。
+    """
+    if line_id:
+        db.execute(
+            "UPDATE shot_dialog_lines SET audio_file=NULL, audio_measured_sec=NULL "
+            "WHERE id=? AND shot_id=?", (line_id, shot_id)
+        )
+    else:
+        db.execute(
+            "UPDATE shot_dialog_lines SET audio_file=NULL, audio_measured_sec=NULL WHERE shot_id=?", (shot_id,)
+        )
+    return {"ok": True, "shot": get_shot(shot_id)}
+
+
+# ---------------- 首帧锚点：取上一镜尾帧 ----------------
+
+@router.get("/shots/{shot_id}/prev-tail-candidates")
+def prev_tail_candidates(shot_id: int) -> dict:
+    """本镜可用的「上一镜尾帧」候选 + 当前 ref_image_0 的来源。
+
+    触发权回到本镜：不用再跳到上一镜去点「抽尾帧并回填下一镜」。
+    """
+    try:
+        return hooks_service.tail_candidates_of_prev(shot_id)
+    except hooks_service.HookError as e:
+        raise HTTPException(404, str(e)) from e
+
+
+class UsePrevTailIn(BaseModel):
+    file_name: str | None = None
+    path: str | None = None
+    prev_shot_code: str | None = None
+
+
+@router.post("/shots/{shot_id}/use-prev-tail")
+def use_prev_tail(shot_id: int, body: UsePrevTailIn) -> dict:
+    """把上一镜尾帧登记为本镜首帧锚点，并覆盖写入视频侧 ref_image_0。"""
+    target = body.path or body.file_name or ""
+    if not target:
+        raise HTTPException(400, "需要 file_name 或 path")
+    try:
+        out = hooks_service.attach_tail_as_first_frame(
+            shot_id, target, prev_shot_code=body.prev_shot_code
+        )
+    except hooks_service.HookError as e:
+        raise HTTPException(400, str(e)) from e
+    return {"ok": True, **out, "shot": get_shot(shot_id)}
+
+
+@router.get("/shots/{shot_id}/tail-sources")
+def tail_sources(shot_id: int) -> dict:
+    """本镜可选尾帧的**来源镜头**清单（只含本镜之前的镜头）。
+
+    每镜带它的成片（可现抽尾帧）与已有尾帧（可直接选用），
+    外加尾帧目录里不属于任何前序镜头的零散尾帧。
+    """
+    try:
+        return hooks_service.tail_sources_for(shot_id)
+    except hooks_service.HookError as e:
+        raise HTTPException(404, str(e)) from e
+
+
+class ExtractTailFromIn(BaseModel):
+    source_shot_id: int
+    video_path: str | None = None
+
+
+@router.post("/shots/{shot_id}/extract-tail-from")
+def extract_tail_from(shot_id: int, body: ExtractTailFromIn) -> dict:
+    """从指定前序镜头的成片抽尾帧 → 落项目尾帧目录 → 直接设为本镜视频首帧。"""
+    try:
+        out = hooks_service.extract_tail_from_source(
+            shot_id, body.source_shot_id, body.video_path
+        )
+    except hooks_service.HookError as e:
+        raise HTTPException(400, str(e)) from e
+    return {"ok": True, **out, "shot": get_shot(shot_id)}
+
+
+# ---------------- 产物归档 / 废弃 ----------------
+
+class DiscardIn(BaseModel):
+    path: str
+
+
+def _move_output(shot_id: int, src_path: str, dest_dir: str | None, fallback_dir,
+                 on_conflict: str, label: str) -> Path:
+    """把产物从暂存区移到目标目录（磁盘移动，不删除）。同名时加「_归档1 / _废1」后缀。"""
+    if not db.query_one("SELECT id FROM shots WHERE id=?", (shot_id,)):
+        raise HTTPException(404, "镜头不存在")
+    src = Path(src_path)
+    if not src.exists():
+        raise HTTPException(404, f"文件不存在：{src_path}")
+
+    base = Path(dest_dir) if dest_dir else Path(fallback_dir)
+    try:
+        base.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        raise HTTPException(500, f"{label}目录创建失败：{e}")
+
+    dest = base / src.name
+    k = 1
+    while dest.exists():
+        dest = base / f"{src.stem}_{on_conflict}{k}{src.suffix}"
+        k += 1
+    try:
+        shutil.move(str(src), str(dest))
+    except OSError as e:
+        raise HTTPException(500, f"移动失败：{e}")
+    return dest
+
+
+def _remark_output(shot_id: int, old_path: str, dest: Path, flags: dict) -> None:
+    """产物换了磁盘位置后，回写任务结果里的 path 与状态位，并同步文件索引。
+
+    界面上的产物列表、选尾帧的成片候选都读 task.result.files，所以必须回写；
+    files 表的 path 一起更新，否则「按文件名找素材」会指到旧位置。
+    """
+    rows = db.query(
+        """SELECT t.id, t.result FROM generation_tasks t
+           JOIN task_links l ON l.task_id=t.id
+           WHERE l.target_kind='shot' AND l.target_id=? AND t.result IS NOT NULL""",
+        (shot_id,),
+    )
+    for r in rows:
+        try:
+            res = jloads(r["result"], {}) or {}
+        except Exception:
+            continue
+        changed = False
+        for f in res.get("files") or []:
+            if f.get("path") == old_path:
+                f["path"] = str(dest)
+                f.update(flags)
+                changed = True
+        if changed:
+            db.execute("UPDATE generation_tasks SET result=? WHERE id=?", (jdumps(res), r["id"]))
+    db.execute(
+        "UPDATE files SET path=?, file_name=? WHERE path=?",
+        (str(dest), dest.name, old_path),
+    )
+
+
+@router.post("/shots/{shot_id}/accept-output")
+def accept_output(shot_id: int, body: DiscardIn) -> dict:
+    """把暂存区里的产物归档进项目「分镜视频」目录（磁盘移动）。
+
+    归档＝认可这一段，所以顺手把本镜成片指过去（shots.final_video_path）；
+    任务结果里标 pending=False / accepted=True，界面不再当「待归档」展示。
+    """
+    project = _shot_project(shot_id)
+    vdir = (project or {}).get("video_dir")
+    if not vdir:
+        raise HTTPException(400, "项目未配置「分镜视频」目录")
+    dest = _move_output(shot_id, body.path, vdir, vdir, "归档", "分镜视频")
+    _remark_output(shot_id, body.path, dest, {"pending": False, "accepted": True})
+    db.execute("UPDATE shots SET final_video_path=? WHERE id=?", (str(dest), shot_id))
+    return {"ok": True, "new_path": str(dest), "shot": get_shot(shot_id)}
+
+
+@router.post("/shots/{shot_id}/discard-output")
+def discard_output(shot_id: int, body: DiscardIn) -> dict:
+    """不要的产物移入项目「废弃产物」目录（磁盘移动，不删除）。
+
+    同时在任务结果里把该文件标记 discarded=True，界面不再当有效候选展示；
+    若它已登记为本镜首帧/尾帧，一并下架。
+    """
+    project = _shot_project(shot_id)
+    dest = _move_output(shot_id, body.path, (project or {}).get("discard_dir"),
+                        DEFAULT_DISCARD_DIR, "废", "废弃")
+    _remark_output(shot_id, body.path, dest, {"discarded": True, "pending": False})
+
+    # 已登记为首帧/尾帧的，一并下架
+    db.execute(
+        "UPDATE shot_frames SET is_active=0 WHERE shot_id=? AND (file_path=? OR file_name=?)",
+        (shot_id, body.path, Path(body.path).name),
+    )
+    return {"ok": True, "new_path": str(dest), "shot": get_shot(shot_id)}
+
+
+# ---------------- 采纳产物 ----------------
+
+class AdoptIn(BaseModel):
+    path: str
+    as_first_frame: bool = True
+
+
+@router.post("/shots/{shot_id}/adopt-image")
+def adopt_image(shot_id: int, body: AdoptIn) -> dict:
+    try:
+        out = hooks_service.register_keyframe(shot_id, body.path, as_first_frame=body.as_first_frame)
+    except hooks_service.HookError as e:
+        raise HTTPException(400, str(e)) from e
+    return {"ok": True, **out, "shot": get_shot(shot_id)}
+
+
+class SetKeyframeIn(BaseModel):
+    path: str
+
+
+def _archive_name(dst: Path) -> Path:
+    """给「当前正式版」找一个空位存档名：0114d_1.jpg、_2 …（不覆盖任何既有文件）。"""
+    k = 1
+    while True:
+        cand = dst.with_name(f"{dst.stem}_{k}{dst.suffix}")
+        if not cand.exists():
+            return cand
+        k += 1
+
+
+@router.post("/shots/{shot_id}/set-keyframe")
+def set_keyframe(shot_id: int, body: SetKeyframeIn) -> dict:
+    """把候选区里的某张图提升为本镜「正式分镜图」。
+
+    正式名由 shot_details.image_target_name 决定（如 0114d.jpg），它被下游引用：
+    视频参考图的首帧锚点、提示词文档里写的文件名。所以这里不改名、只换内容 ——
+      1. 现有正式版先改名存档为 0114d_1.jpg（占用则 _2…），旧版绝不丢；
+      2. 候选文件移到正式名位置。
+    正式名永远＝你最后采用的那张，旧版本留在候选区当存档，随时可以再采用回来。
+    """
+    sd = db.query_one("SELECT image_target_name FROM shot_details WHERE shot_id=?", (shot_id,)) or {}
+    target_name = (sd.get("image_target_name") or "").strip()
+    if not target_name:
+        raise HTTPException(400, "本镜没有「分镜图正式名」（image_target_name），无法采用")
+    kf_dir = (_shot_project(shot_id) or {}).get("keyframe_dir")
+    if not kf_dir:
+        raise HTTPException(400, "项目未配置「分镜图」目录")
+
+    base = Path(kf_dir)
+    target = base / Path(target_name).name
+    src = Path(body.path)
+    if not src.exists():
+        raise HTTPException(404, f"文件不存在：{body.path}")
+    try:
+        src.resolve().relative_to(base.resolve())
+    except ValueError:
+        raise HTTPException(400, "只能采用本项目「分镜图」目录里的候选图") from None
+    if src.resolve() == target.resolve():
+        raise HTTPException(400, "这张已经是正式分镜图")
+
+    archived: Path | None = None
+    try:
+        if target.exists():
+            archived = _archive_name(target)
+            shutil.move(str(target), str(archived))  # 旧正式版退位存档
+            _remark_output(shot_id, str(target), archived, {"archived": True})
+            file_store.index_file(archived)
+        shutil.move(str(src), str(target))  # 候选上位
+    except OSError as e:
+        raise HTTPException(500, f"文件移动失败：{e}") from e
+
+    _remark_output(shot_id, body.path, target, {"pending": False, "accepted": True})
+    file_store.index_file(target)
+    return {
+        "ok": True,
+        "new_path": str(target),
+        "archived_path": str(archived) if archived else None,
+        "shot": get_shot(shot_id),
+    }
+
+
+@router.get("/shots/{shot_id}/keyframe-candidates")
+def keyframe_candidates(shot_id: int) -> dict:
+    """列出项目「分镜图」目录里属于本镜的图（正式名 + _1/_2 存档）。
+
+    界面候选区原本只认 generation_tasks 的生成结果：手动放进目录的图、以及被
+    「采用/更换」顶下来的存档版，都不会出现在候选区。这里按 image_target_name
+    的前缀扫目录补齐，前端与任务结果合并去重。
+    """
+    import re
+
+    sd = db.query_one("SELECT image_target_name FROM shot_details WHERE shot_id=?", (shot_id,)) or {}
+    target_name = (sd.get("image_target_name") or "").strip()
+    if not target_name:
+        return {"items": [], "target_name": ""}
+    kf_dir = (_shot_project(shot_id) or {}).get("keyframe_dir")
+    if not kf_dir:
+        return {"items": [], "target_name": target_name}
+
+    base = Path(kf_dir)
+    stem = Path(target_name).stem
+    pat = re.compile(rf"^{re.escape(stem)}(_\d+)?\.(jpg|jpeg|png|webp|bmp|gif)$", re.I)
+    items: list[dict] = []
+    if base.is_dir():
+        for f in base.iterdir():
+            if not f.is_file() or not pat.match(f.name):
+                continue
+            try:
+                st = f.stat()
+            except OSError:
+                continue
+            items.append(
+                {
+                    "path": str(f),
+                    "file_name": f.name,
+                    "size_bytes": st.st_size,
+                    "mtime": st.st_mtime,
+                    "is_target": f.name.lower() == Path(target_name).name.lower(),
+                }
+            )
+    items.sort(key=lambda x: (not x["is_target"], -x["mtime"]))  # 正式版最前，其余新→旧
+    return {"items": items, "target_name": target_name}
+
+
+KEFRAME_FMT = {".jpg": "JPEG", ".jpeg": "JPEG", ".png": "PNG", ".webp": "WEBP"}
+
+
+@router.post("/shots/{shot_id}/replace-keyframe")
+async def replace_keyframe(shot_id: int, file: UploadFile = File(...)) -> dict:
+    """用本机选的一张图，替换本镜「正式分镜图」（旧版先存档 _1，不会丢）。
+
+    与 set-keyframe 的分工：set-keyframe 是把「已在目录里的候选」扶正；这个是把
+    「外部任意一张图」灌进正式名 —— 候选区里没有你想要的那张图时用这条。
+
+    正式名的**文件名**永不改变（= image_target_name，如 0114d.jpg）—— 视频首帧锚点
+    与提示词文档都按这个文件名引用，改名即断链。上传格式与扩展名不符时（png 顶到
+    .jpg 上）按目标格式重编码，避免出现「扩展名 .jpg、内容其实是 png」这种坑。
+    """
+    import io
+
+    from PIL import Image
+
+    sd = db.query_one("SELECT image_target_name FROM shot_details WHERE shot_id=?", (shot_id,)) or {}
+    target_name = (sd.get("image_target_name") or "").strip()
+    if not target_name:
+        raise HTTPException(400, "本镜没有「分镜图正式名」（image_target_name），无法替换")
+    kf_dir = (_shot_project(shot_id) or {}).get("keyframe_dir")
+    if not kf_dir:
+        raise HTTPException(400, "项目未配置「分镜图」目录")
+    base = Path(kf_dir)
+    if not base.is_dir():
+        raise HTTPException(400, f"「分镜图」目录不存在：{base}")
+
+    target = base / Path(target_name).name
+    want = KEFRAME_FMT.get(target.suffix.lower())
+    if not want:
+        raise HTTPException(400, f"正式名扩展名 {target.suffix} 暂不支持直接替换（支持 jpg/png/webp）")
+
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(400, "没有收到文件内容")
+    if len(raw) > 40 * 1024 * 1024:
+        raise HTTPException(400, "图片过大（上限 40MB）")
+
+    try:
+        with Image.open(io.BytesIO(raw)) as im:
+            im.load()
+            got = (im.format or "").upper()
+            converted = got != want
+            if not converted:
+                data = raw  # 同格式：原字节落盘，不重编码
+            else:
+                buf = io.BytesIO()
+                if want == "JPEG":
+                    im.convert("RGB").save(buf, "JPEG", quality=95, subsampling=0)
+                else:
+                    keep = im.mode in ("RGBA", "LA", "P")
+                    kw = {"quality": 95} if want == "WEBP" else {}
+                    im.convert("RGBA" if keep else "RGB").save(buf, want, **kw)
+                data = buf.getvalue()
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(400, "选的文件不是有效图片") from None
+
+    archived: Path | None = None
+    try:
+        if target.exists():
+            archived = _archive_name(target)
+            shutil.move(str(target), str(archived))  # 旧正式版退位存档
+            _remark_output(shot_id, str(target), archived, {"archived": True})
+            file_store.index_file(archived)
+        target.write_bytes(data)
+    except OSError as e:
+        raise HTTPException(500, f"写入失败：{e}") from e
+
+    file_store.index_file(target)
+    return {
+        "ok": True,
+        "new_path": str(target),
+        "archived_path": str(archived) if archived else None,
+        "uploaded": file.filename or "",
+        "format_in": got,
+        "format_out": want,
+        "converted": converted,
+        "shot": get_shot(shot_id),
+    }
+
+
+@router.post("/shots/{shot_id}/first-frame/upload")
+async def upload_first_frame(shot_id: int, file: UploadFile = File(...)) -> dict:
+    """自己传一张图当首帧锚点（不等生成；来源可以是任何地方，不限于上一镜尾帧）。"""
+    data = await file.read()
+    try:
+        out = hooks_service.save_uploaded_first_frame(shot_id, file.filename or "", data)
+    except hooks_service.HookError as e:
+        raise HTTPException(400, str(e)) from e
+    return {"ok": True, **out, "shot": get_shot(shot_id)}
+
+@router.post("/shots/{shot_id}/extract-tail")
+def extract_tail(shot_id: int, body: dict | None = None) -> dict:
+    body = body or {}
+    try:
+        out = hooks_service.extract_and_register_tail(
+            shot_id, body.get("video_path") or "", link_to_next=body.get("link_to_next", True)
+        )
+    except hooks_service.HookError as e:
+        raise HTTPException(400, str(e)) from e
+    return {"ok": True, **out}
+
+
+@router.post("/shots/{shot_id}/audit")
+def audit(shot_id: int) -> dict:
+    return {"audio": hooks_service.audit_audio(shot_id), "materials": hooks_service.validate_materials(shot_id)}
+
+
+@router.post("/shots/{shot_id}/lint")
+def lint(shot_id: int, stage: str = "video") -> dict:
+    hits = lint_service.lint_shot(shot_id, stage=stage)
+    return {"hits": hits, "count": len(hits)}
+
+
+# ---------------- 生成 ----------------
+
+class GenerateIn(BaseModel):
+    kind: str                       # image / video
+    model_id: int | None = None
+    overrides: dict | None = None
+    force: bool = False
+    auto_tail: bool = True
+    skip_lint: bool = False
+
+
+@router.post("/shots/{shot_id}/generate")
+def generate(shot_id: int, body: GenerateIn) -> dict:
+    shot = db.query_one("SELECT * FROM shots WHERE id=?", (shot_id,))
+    if not shot:
+        raise HTTPException(404, "镜头不存在")
+    overrides = body.overrides or {}
+
+    if body.kind == "video":
+        params = task_runner.build_video_params(shot_id, overrides)
+        params["force"] = body.force
+        params["auto_tail"] = body.auto_tail
+        params["model_id"] = body.model_id
+        prompt = params.get("prompt") or ""
+        if not prompt.strip():
+            raise HTTPException(400, "本镜没有视频提示词，无法生成")
+        if not params.get("ref_images") and not params.get("first_frame"):
+            pass  # 纯文生也允许
+        tid = task_runner.create_task(
+            "video_generation", target_kind="shot", target_id=shot_id, role="video",
+            payload=params, model_id=body.model_id,
+        )
+    elif body.kind == "image":
+        params = task_runner.build_image_params(shot_id, overrides)
+        params["model_id"] = body.model_id
+        if not (params.get("prompt") or "").strip():
+            raise HTTPException(400, "本镜没有分镜图提示词，无法生成")
+        tid = task_runner.create_task(
+            "image_generation", target_kind="shot", target_id=shot_id, role="keyframe",
+            payload=params, model_id=body.model_id,
+        )
+    elif body.kind == "tts":
+        raise HTTPException(
+            400,
+            "工作台不做配音生成：音频请在镜头里「选择音频文件」直接挂上，随 ref_audio_* 交给视频模型",
+        )
+    else:
+        raise HTTPException(400, f"未知生成类型：{body.kind}")
+    return {"ok": True, "task_id": tid}
+
+
+class DryRunIn(BaseModel):
+    kind: str = "video"
+    model_id: int | None = None
+    overrides: dict | None = None
+
+
+@router.post("/shots/{shot_id}/dry-run")
+def dry_run(shot_id: int, body: DryRunIn) -> dict:
+    from ..executors import provider_engine as PE
+
+    try:
+        bundle = PE.load_model_bundle(body.model_id, body.kind)
+    except PE.ProviderError as e:
+        raise HTTPException(400, str(e)) from e
+    if body.kind == "video":
+        params = task_runner.build_video_params(shot_id, body.overrides or {})
+    elif body.kind == "image":
+        params = task_runner.build_image_params(shot_id, body.overrides or {})
+    else:
+        raise HTTPException(400, f"未知生成类型：{body.kind}")
+    try:
+        res = PE.execute(bundle, params, dry_run=True)
+    except PE.ProviderError as e:
+        raise HTTPException(400, str(e)) from e
+    return {"ok": True, "preview": res.request_preview, "params": {k: v for k, v in params.items() if k != "prompt"},
+            "prompt_len": len(params.get("prompt") or "")}
+
+
+# ---------------- 增删镜头 ----------------
+
+class NewShotIn(BaseModel):
+    shot_code: str
+    title: str | None = None
+    after_shot_id: int | None = None
+    duration_sec: float | None = None
+
+
+@router.post("/episodes/{episode_id}/shots")
+def create_shot(episode_id: int, body: NewShotIn) -> dict:
+    ep = db.query_one("SELECT * FROM episodes WHERE id=?", (episode_id,))
+    if not ep:
+        raise HTTPException(404, "集不存在")
+    mx = db.query_one("SELECT COALESCE(MAX(sort_order), -1) AS m FROM shots WHERE episode_id=?", (episode_id,))["m"]
+    order = mx + 1
+    if body.after_shot_id:
+        a = db.query_one("SELECT * FROM shots WHERE id=?", (body.after_shot_id,))
+        if a:
+            order = (a["sort_order"] or 0) + 1
+            db.execute(
+                "UPDATE shots SET sort_order = sort_order + 1 WHERE episode_id=? AND sort_order >= ?",
+                (episode_id, order),
+            )
+    sid = db.execute(
+        "INSERT INTO shots(episode_id, shot_code, title, sort_order) VALUES(?,?,?,?)",
+        (episode_id, body.shot_code, body.title, order),
+    )
+    db.execute(
+        "INSERT INTO shot_details(shot_id, duration_sec) VALUES(?,?)", (sid, body.duration_sec)
+    )
+    return get_shot(sid)
+
+
+@router.delete("/shots/{shot_id}")
+def delete_shot(shot_id: int) -> dict:
+    db.execute("DELETE FROM shots WHERE id=?", (shot_id,))
+    return {"ok": True}
+
+
+@router.post("/episodes/{episode_id}/shots/reorder")
+def reorder_shots(episode_id: int, body: dict) -> dict:
+    ids: list[int] = body.get("shot_ids") or []
+    for i, sid in enumerate(ids):
+        db.execute("UPDATE shots SET sort_order=? WHERE id=? AND episode_id=?", (i, sid, episode_id))
+    return {"ok": True}
+
+
+# ---------------- 镜头设置（四步向导的可选项） ----------------
+
+@router.get("/meta/camera-options")
+def camera_options() -> dict:
+    """镜头设置向导的枚举。前四组对应「视角 / 景别 / 主体位置 / 运镜」四步。
+
+    注意分工：景别 + 视角 + 主体位置是**静态构图**，进分镜图；
+    运镜是**动态**，只进视频提示词，绝不可混进分镜图。
+    """
+    return {
+        "camera_shot": [
+            {"value": "ECU", "label": "大特写"},
+            {"value": "CU", "label": "特写"},
+            {"value": "MCU", "label": "中近景"},
+            {"value": "MS", "label": "中景"},
+            {"value": "MLS", "label": "中远景"},
+            {"value": "LS", "label": "全景"},
+            {"value": "ELS", "label": "大远景"},
+        ],
+        "angle": [
+            {"value": "EYE_LEVEL", "label": "平视"},
+            {"value": "HIGH_ANGLE", "label": "俯拍"},
+            {"value": "LOW_ANGLE", "label": "仰拍"},
+            {"value": "BIRD_EYE", "label": "鸟瞰"},
+            {"value": "DUTCH", "label": "斜角"},
+            {"value": "OVER_SHOULDER", "label": "过肩"},
+            {"value": "POV", "label": "第一人称"},
+            {"value": "BEHIND", "label": "背身"},
+        ],
+        "subject_position": [
+            {"value": "左上", "label": "左上"},
+            {"value": "上中", "label": "上中"},
+            {"value": "右上", "label": "右上"},
+            {"value": "左中", "label": "左中"},
+            {"value": "中心", "label": "中心"},
+            {"value": "右中", "label": "右中"},
+            {"value": "左下", "label": "左下"},
+            {"value": "下中", "label": "下中"},
+            {"value": "右下", "label": "右下"},
+        ],
+        "subject_distance": [
+            {"value": "近", "label": "近"},
+            {"value": "中", "label": "中"},
+            {"value": "远", "label": "远"},
+        ],
+        "movement": [
+            {"value": "STATIC", "label": "固定"},
+            {"value": "PAN", "label": "横摇"},
+            {"value": "TILT", "label": "纵摇"},
+            {"value": "DOLLY_IN", "label": "推近"},
+            {"value": "DOLLY_OUT", "label": "拉远"},
+            {"value": "TRACK", "label": "跟移"},
+            {"value": "CRANE", "label": "升降"},
+            {"value": "HANDHELD", "label": "手持"},
+            {"value": "STEADICAM", "label": "稳定器"},
+            {"value": "ZOOM_IN", "label": "变焦推"},
+            {"value": "ZOOM_OUT", "label": "变焦拉"},
+        ],
+        "gen_mode": ["I2VA", "FL2VA", "REF2VA", "T2V", "I2V"],
+    }
+
+
+# ---------------- 镜头设置向导 → 提示词注入 ----------------
+
+class WizardIn(BaseModel):
+    camera_shot: str | None = None
+    angle: str | None = None
+    movement: str | None = None
+    subject_position: str | None = None
+
+
+@router.get("/shots/{shot_id}/wizard-note")
+def wizard_note(shot_id: int, camera_shot: str = "", angle: str = "",
+                movement: str = "", subject_position: str = "") -> dict:
+    """只算不写：返回将要注入两份提示词的句子（措辞的唯一事实源在 wizard_service）。"""
+    return {
+        "image_note": wizard_service.compose_image_note(camera_shot, angle, subject_position),
+        "video_note": wizard_service.compose_video_note(angle, movement),
+    }
+
+
+@router.post("/shots/{shot_id}/apply-wizard")
+def apply_wizard(shot_id: int, body: WizardIn) -> dict:
+    """把向导四步写入镜头字段，并自动注入分镜图/视频提示词。
+
+    注入是「可重复执行」的：靠 wiz_image_note / wiz_video_note 记的上次原文做替换，
+    不会每点一次就往后堆一遍。
+    """
+    if not db.query_one("SELECT id FROM shots WHERE id=?", (shot_id,)):
+        raise HTTPException(404, "镜头不存在")
+    if not body.camera_shot and not body.angle:
+        raise HTTPException(400, "至少选一个景别或视角")
+
+    before = db.query_one(
+        "SELECT image_prompt, video_prompt FROM shot_details WHERE shot_id=?", (shot_id,)) or {}
+    result = wizard_service.apply_to_shot(
+        shot_id,
+        camera_shot=body.camera_shot,
+        angle=body.angle,
+        movement=body.movement,
+        subject_position=body.subject_position,
+    )
+    # 提示词改动留痕，方便回滚
+    for kind, key in (("shot_image", "image"), ("shot_video", "video")):
+        col = f"{key}_prompt"
+        if (before.get(col) or "") != (result[key]["prompt"] or ""):
+            _snapshot(shot_id, kind, result[key]["prompt"], "镜头设置向导注入")
+    return {"ok": True, **result}
+
+
+@router.get("/shots/{shot_id}/suggest-tail")
+def suggest_tail(shot_id: int) -> dict:
+    """建议的尾帧/分镜图文件名（按命名规律推导）。"""
+    s = db.query_one("SELECT * FROM shots WHERE id=?", (shot_id,))
+    if not s:
+        raise HTTPException(404, "镜头不存在")
+    ep = db.query_one("SELECT * FROM episodes WHERE id=?", (s["episode_id"],))
+    ep_num = ep["number"] if ep else 1
+    p = db.query_one("SELECT * FROM projects WHERE id=?", (ep["project_id"],)) if ep else None
+    names = naming.keyframe_names(s["shot_code"], ep_num)
+    tails = naming.tail_names(s["shot_code"], ep_num)
+    return {
+        "keyframe_candidates": [
+            {"name": n, "exists": bool(file_store.resolve(n, p))} for n in names
+        ],
+        "tail_candidates": [{"name": n, "exists": bool(file_store.resolve(n, p))} for n in tails],
+    }

@@ -1,0 +1,118 @@
+{
+  "1": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {"ckpt_name": "sd_xl_base_1.0.safetensors"},
+    "_meta": {"title": "加载 SDXL 基座"}
+  },
+  "8": {
+    "class_type": "LoraLoader",
+    "inputs": {
+      "lora_name": "Canopus-Pixar-Art.safetensors",
+      "strength_model": 0.8,
+      "strength_clip": 0.8,
+      "model": ["1", 0],
+      "clip": ["1", 1]
+    },
+    "_meta": {"title": "加载 Canopus Pixar LoRA"}
+  },
+  "9": {
+    "class_type": "IPAdapterUnifiedLoader",
+    "inputs": {
+      "model": ["8", 0],
+      "clip_vision_name": "clip_vision_g.safetensors",
+      "ipadapter_name": "ip-adapter-plus-face_sdxl_vit-h.safetensors"
+    },
+    "_meta": {"title": "IP-Adapter 统一加载器（自动载入 clip_vision + ipadapter）"}
+  },
+  "11": {
+    "class_type": "LoadImage",
+    "inputs": {"image": "hedgehog_hero.png"},
+    "_meta": {"title": "IP-Adapter 参照图（你最满意的刺猬英雄图）"}
+  },
+  "10": {
+    "class_type": "IPAdapter",
+    "inputs": {
+      "ipadapter": ["9", 2],
+      "image": ["11", 0],
+      "model": ["9", 0],
+      "weight": 0.9,
+      "noise": 0.0,
+      "weight_type": "linear",
+      "start_at": 0.0,
+      "end_at": 1.0,
+      "unfold_batch": false,
+      "embeds_scaling": "V only"
+    },
+    "_meta": {"title": "施加 IP-Adapter（锁定同一张脸/角色）"}
+  },
+  "12": {
+    "class_type": "ControlNetLoader",
+    "inputs": {"control_net_name": "OpenPoseXL2.safetensors"},
+    "_meta": {"title": "加载 ControlNet OpenPose"}
+  },
+  "13": {
+    "class_type": "LoadImage",
+    "inputs": {"image": "01_front_neutral.png"},
+    "_meta": {"title": "ControlNet 姿势骨架（按 9 宫格换不同 png）"}
+  },
+  "14": {
+    "class_type": "ControlNetApplyAdvanced",
+    "inputs": {
+      "positive": ["2", 0],
+      "negative": ["3", 0],
+      "control_net": ["12", 0],
+      "image": ["13", 0],
+      "strength": 0.8,
+      "start_percent": 0.0,
+      "end_percent": 1.0
+    },
+    "_meta": {"title": "施加 ControlNet（锁定姿势/角度）"}
+  },
+  "2": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "pixar style, disney pixar, 3d cartoon character, a cute baby hedgehog, round plump body, small soft quills on back, tiny legs, large sparkling glossy eyes, small black button nose, smooth clay skin between quills, solid pastel light blue clean background, full body shot, centered, soft studio lighting, octane render, 8k uhd, masterpiece, best quality, calm neutral expression",
+      "clip": ["9", 1]
+    },
+    "_meta": {"title": "正提示词（表情词每格改）"}
+  },
+  "3": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "realistic, photo, lowres, bad anatomy, extra limbs, deformed, blurry, watermark, text, signature, human, person, boy, girl, child, dark, scary, multiple animals, duplicate, merged, overlapping, messy, rabbit, cat, dog, bear",
+      "clip": ["9", 1]
+    },
+    "_meta": {"title": "负提示词"}
+  },
+  "4": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {"width": 1024, "height": 1152, "batch_size": 1},
+    "_meta": {"title": "空 Latent 1024x1152"}
+  },
+  "5": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 246813579,
+      "steps": 30,
+      "cfg": 6.0,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1.0,
+      "model": ["10", 0],
+      "positive": ["14", 0],
+      "negative": ["14", 1],
+      "latent_image": ["4", 0]
+    },
+    "_meta": {"title": "KSampler"}
+  },
+  "6": {
+    "class_type": "VAEDecode",
+    "inputs": {"samples": ["5", 0], "vae": ["1", 2]},
+    "_meta": {"title": "VAE 解码"}
+  },
+  "7": {
+    "class_type": "SaveImage",
+    "inputs": {"images": ["6", 0]},
+    "_meta": {"title": "保存图像"}
+  }
+}

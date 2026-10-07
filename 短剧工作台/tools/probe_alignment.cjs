@@ -1,0 +1,100 @@
+/**
+ * 表格列对齐巡检：量出每张表各列的「表头文字中线」与「内容中线」是否对齐，
+ * 并把项目列表整表截图，用于肉眼确认。
+ * 用法：node tools/probe_alignment.cjs [baseUrl]
+ */
+const fs = require('fs');
+const PW_CORE = process.env.PW_CORE
+  || 'C:/Users/Administrator/AppData/Roaming/npm/node_modules/@playwright/cli/node_modules/playwright-core';
+const { chromium } = require(PW_CORE);
+
+const BASE = process.argv[2] || 'http://127.0.0.1:5192';
+const OUT = 'D:/Aicomfyui/短剧工作台/storage/ui-tour';
+
+const EXE = [
+  process.env.CHROME_EXE,
+  'C:/Program Files/Google/Chrome/Application/chrome.exe',
+  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+].filter(Boolean).find((p) => fs.existsSync(p));
+
+const MEASURE = () => {
+  const out = [];
+  document.querySelectorAll('.el-table').forEach((tbl, ti) => {
+    const ths = [...tbl.querySelectorAll('.el-table__header th')];
+    const firstRow = tbl.querySelector('.el-table__body tbody tr');
+    if (!firstRow) return;
+    const tds = [...firstRow.querySelectorAll('td')];
+    ths.forEach((th, i) => {
+      const td = tds[i];
+      if (!td) return;
+      const thBox = th.querySelector('.cell') || th;
+      const tdBox = td.querySelector('.cell') || td;
+      const thw = th.querySelector('.cell-wrap') || thBox;
+      const label = (th.querySelector('.cell')?.innerText || '').trim();
+      const tw = thw.getBoundingClientRect();
+      const dw = tdBox.getBoundingClientRect();
+      const opRow = td.querySelector('.op-row');
+      const ob = opRow ? opRow.getBoundingClientRect() : null;
+      const btns = opRow ? [...opRow.querySelectorAll('.el-button')] : [];
+      const bFirst = btns.length ? btns[0].getBoundingClientRect() : null;
+      const bLast = btns.length ? btns[btns.length - 1].getBoundingClientRect() : null;
+      out.push({
+        table: ti,
+        idx: i,
+        label,
+        thAlign: getComputedStyle(thBox).textAlign,
+        tdAlign: getComputedStyle(tdBox).textAlign,
+        thW: Math.round(tw.width),
+        tdW: Math.round(dw.width),
+        thLeft: Math.round(tw.left),
+        tdLeft: Math.round(dw.left),
+        thMid: Math.round(tw.left + tw.width / 2),
+        boxMid: ob ? Math.round(ob.left + ob.width / 2) : null,
+        btnMid: bFirst && bLast
+          ? Math.round(((bFirst.left + bLast.right) / 2))
+          : null,
+        btnSpan: bFirst && bLast
+          ? `[${Math.round(bFirst.left)}~${Math.round(bLast.right)}]`
+          : '',
+        hasOpRow: !!opRow,
+      });
+    });
+  });
+  return out;
+};
+
+(async () => {
+  const browser = await chromium.launch({ headless: true, executablePath: EXE });
+  const ctx = await browser.newContext({ viewport: { width: 1600, height: 950 } });
+  const page = await ctx.newPage();
+
+  await page.goto(`${BASE}/?_r=${Date.now()}/#/`, { waitUntil: 'load', timeout: 25000 });
+  await page.waitForFunction(
+    () => document.querySelectorAll('.el-table__body tbody tr').length > 0,
+    { timeout: 12000 },
+  ).catch(() => {});
+  await page.waitForTimeout(600);
+
+  const rows = await page.evaluate(MEASURE);
+  console.log('表 列 标题'.padEnd(20) + '表头对齐'.padEnd(10) + '内容对齐'.padEnd(10)
+    + '表头中线'.padEnd(10) + '按钮中线'.padEnd(10) + '按钮区间'.padEnd(16) + '判定');
+  console.log('-'.repeat(96));
+  for (const r of rows) {
+    let verdict = '—';
+    if (r.hasOpRow) {
+      const d = r.btnMid - r.thMid;
+      verdict = Math.abs(d) <= 6 ? '✓ 表头居中对齐按钮' : `✗ 差 ${d}`;
+    }
+    console.log(
+      String(r.table).padEnd(3) + String(r.idx).padEnd(3)
+      + r.label.slice(0, 12).padEnd(14)
+      + r.thAlign.padEnd(10) + r.tdAlign.padEnd(10)
+      + String(r.thMid).padEnd(10) + String(r.btnMid ?? '—').padEnd(10)
+      + r.btnSpan.padEnd(16) + verdict,
+    );
+  }
+
+  await page.screenshot({ path: OUT + '/align_projects.png', fullPage: false });
+  console.log('\n截图: ' + OUT + '/align_projects.png');
+  await browser.close();
+})().catch((e) => { console.error('FATAL', e); process.exit(1); });

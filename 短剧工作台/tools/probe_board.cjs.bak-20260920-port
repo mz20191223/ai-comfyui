@@ -1,0 +1,55 @@
+/** 探查看板页：抓实际发出的请求与响应、DOM 状态。 */
+const fs = require('fs');
+const PW = 'C:/Users/Administrator/AppData/Roaming/npm/node_modules/@playwright/cli/node_modules/playwright-core';
+const { chromium } = require(PW);
+
+const BASE = process.argv[2] || 'http://127.0.0.1:5180';
+const HASH = process.argv[3] || '#/p/1/board';
+
+(async () => {
+  const CAND = [
+    'C:/Program Files/Google/Chrome/Application/chrome.exe',
+    'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+  ];
+  const browser = await chromium.launch({ headless: true, executablePath: CAND.find((p) => fs.existsSync(p)) });
+  const page = await browser.newPage({ viewport: { width: 1600, height: 950 } });
+
+  page.on('response', async (res) => {
+    const u = res.url();
+    if (!u.includes('/api/')) return;
+    let body = '';
+    try {
+      body = (await res.text()).slice(0, 160);
+    } catch { body = '(读不到)'; }
+    console.log(`  ${res.status()} ${u.replace(BASE, '')}\n      ${body.replace(/\s+/g, ' ')}`);
+  });
+  page.on('console', (m) => {
+    if (m.type() === 'error') console.log('  [console.error]', m.text().slice(0, 200));
+  });
+  page.on('pageerror', (e) => console.log('  [pageerror]', String(e.message).slice(0, 200)));
+
+  console.log('--- 打开', HASH, '---');
+  await page.goto(BASE + '/' + HASH, { waitUntil: 'load', timeout: 25000 });
+
+  for (const wait of [1500, 2500, 4000]) {
+    await page.waitForTimeout(wait === 1500 ? 1500 : 1000);
+    const st = await page.evaluate(() => ({
+      hash: location.hash,
+      rows: document.querySelectorAll('.el-table__row').length,
+      header: (document.querySelector('.el-table__header')?.innerText || '').replace(/\s+/g, ' ').slice(0, 120),
+      empty: !!document.querySelector('.el-table__empty-text'),
+      emptyText: document.querySelector('.el-table__empty-text')?.innerText || '',
+      top: (document.querySelector('.toolbar, .bar, .el-card')?.innerText || '').replace(/\s+/g, ' ').slice(0, 160),
+      txtLen: document.body.innerText.trim().length,
+    }));
+    console.log(`  [t=${wait}ms] rows=${st.rows} empty=${st.empty}(${st.emptyText}) txtLen=${st.txtLen}`);
+  }
+
+  const dump = await page.evaluate(() => document.body.innerText.replace(/\n{2,}/g, '\n').slice(0, 700));
+  console.log('--- 页面文本 ---\n' + dump);
+
+  await browser.close();
+})().catch((e) => {
+  console.error('FATAL', e.message);
+  process.exit(1);
+});

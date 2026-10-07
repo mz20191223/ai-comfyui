@@ -1,0 +1,319 @@
+{
+ "last_node_id": 6,
+ "last_link_id": 5,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "String Literal",
+   "pos": [
+    100,
+    0
+   ],
+   "size": [
+    280,
+    60
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "STRING",
+     "type": "STRING",
+     "links": [
+      1
+     ],
+     "slot_index": 0
+    }
+   ],
+   "title": "用户输入(中文短词)",
+   "properties": {
+    "Node name for S&R": "String Literal"
+   },
+   "widgets_values": [
+    "一只皮克斯风格的兔子，大眼睛，毛茸茸"
+   ]
+  },
+  {
+   "id": 2,
+   "type": "LlamaCPPModelLoader",
+   "pos": [
+    400,
+    0
+   ],
+   "size": [
+    280,
+    60
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "model",
+     "type": "LLM_MODEL",
+     "links": [
+      2
+     ],
+     "slot_index": 0
+    }
+   ],
+   "title": "加载Qwen2.5-14B GGUF",
+   "properties": {
+    "Node name for S&R": "LlamaCPPModelLoader"
+   },
+   "widgets_values": [
+    "qwen2.5-14b-instruct-q4_k_m-00001-of-00003.gguf",
+    "qwen2",
+    "None"
+   ]
+  },
+  {
+   "id": 3,
+   "type": "LlamaCPPOptions",
+   "pos": [
+    700,
+    0
+   ],
+   "size": [
+    280,
+    60
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "options",
+     "type": "LLM_OPTIONS",
+     "links": [
+      3
+     ],
+     "slot_index": 0
+    }
+   ],
+   "title": "LLM推理参数(GPU)",
+   "properties": {
+    "Node name for S&R": "LlamaCPPOptions"
+   },
+   "widgets_values": [
+    -1,
+    4096,
+    -1,
+    -1,
+    512,
+    512,
+    0,
+    true,
+    false,
+    true,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "id": 4,
+   "type": "LlamaCPPEngine",
+   "pos": [
+    1000,
+    0
+   ],
+   "size": [
+    280,
+    60
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "LLM_MODEL",
+     "link": 2,
+     "slot_index": 0
+    },
+    {
+     "name": "prompt",
+     "type": "STRING",
+     "link": 1,
+     "slot_index": 1
+    },
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "link": null,
+     "slot_index": 2
+    },
+    {
+     "name": "options",
+     "type": "LLM_OPTIONS",
+     "link": 3,
+     "slot_index": 3
+    }
+   ],
+   "outputs": [
+    {
+     "name": "response",
+     "type": "STRING",
+     "links": [
+      4,
+      5
+     ],
+     "slot_index": 0
+    }
+   ],
+   "title": "LLM扩写提示词",
+   "properties": {
+    "Node name for S&R": "LlamaCPPEngine"
+   },
+   "widgets_values": [
+    "",
+    "You are a professional image-generation prompt engineer. Rewrite the user's short Chinese description into a detailed, vivid English prompt for a text-to-image model. Include: subject, style, lighting, composition, materials, color palette, background, mood. Output ONLY the prompt text, no extra explanation.",
+    "close",
+    "text",
+    400,
+    0.7,
+    0.95,
+    100,
+    1.0,
+    -1
+   ]
+  },
+  {
+   "id": 5,
+   "type": "LlamaCPPMemoryCleanup",
+   "pos": [
+    100,
+    300
+   ],
+   "size": [
+    280,
+    60
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "memory_cleanup",
+     "type": "COMBO",
+     "link": null,
+     "slot_index": 0
+    },
+    {
+     "name": "passthrough",
+     "type": "STRING",
+     "link": 4,
+     "slot_index": 1
+    }
+   ],
+   "outputs": [
+    {
+     "name": "passthrough",
+     "type": "STRING",
+     "links": [],
+     "slot_index": 0
+    }
+   ],
+   "title": "释放LLM显存",
+   "properties": {
+    "Node name for S&R": "LlamaCPPMemoryCleanup"
+   },
+   "widgets_values": [
+    "close",
+    ""
+   ]
+  },
+  {
+   "id": 6,
+   "type": "ShowText",
+   "pos": [
+    1300,
+    0
+   ],
+   "size": [
+    280,
+    60
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "text",
+     "type": "STRING",
+     "link": 5,
+     "slot_index": 0
+    }
+   ],
+   "outputs": [],
+   "title": "扩写结果(复制到角色图流)",
+   "properties": {
+    "Node name for S&R": "ShowText"
+   },
+   "widgets_values": [
+    ""
+   ]
+  }
+ ],
+ "links": [
+  [
+   1,
+   1,
+   0,
+   4,
+   1,
+   "STRING"
+  ],
+  [
+   2,
+   2,
+   0,
+   4,
+   0,
+   "LLM_MODEL"
+  ],
+  [
+   3,
+   3,
+   0,
+   4,
+   3,
+   "LLM_OPTIONS"
+  ],
+  [
+   4,
+   4,
+   0,
+   5,
+   1,
+   "STRING"
+  ],
+  [
+   5,
+   4,
+   0,
+   6,
+   0,
+   "STRING"
+  ]
+ ],
+ "groups": [],
+ "config": {},
+ "extra": {},
+ "version": 0.4,
+ "seed": 0,
+ "extra_data": {},
+ "meta": {
+  "format": "wf"
+ },
+ "title": "① 扩写流：短词 → 英文提示词 (Qwen2.5-14B)"
+}

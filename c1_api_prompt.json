@@ -1,0 +1,126 @@
+{
+ "1": {
+  "class_type": "LdmPipelineLoader",
+  "inputs": {
+   "ckpt_name": "sd_xl_base_1.0.safetensors",
+   "pipeline_name": "MVAdapterI2MVSDXLPipeline"
+  }
+ },
+ "2": {
+  "class_type": "DiffusersMVSchedulerLoader",
+  "inputs": {
+   "pipeline": [
+    "1",
+    0
+   ],
+   "scheduler_name": "DDPM",
+   "shift_snr": true,
+   "shift_mode": "interpolated",
+   "shift_scale": 8.0
+  }
+ },
+ "3": {
+  "class_type": "LdmVaeLoader",
+  "inputs": {
+   "vae_name": "sdxl_vae.safetensors",
+   "upcast_fp32": true
+  }
+ },
+ "4": {
+  "class_type": "DiffusersMVModelMakeup",
+  "inputs": {
+   "pipeline": [
+    "1",
+    0
+   ],
+   "scheduler": [
+    "2",
+    0
+   ],
+   "autoencoder": [
+    "3",
+    0
+   ],
+   "load_mvadapter": true,
+   "adapter_path": "/root/ComfyUI/models/mvadapter",
+   "adapter_name": "mvadapter_i2mv_sdxl.safetensors",
+   "num_views": 6
+  }
+ },
+ "6": {
+  "class_type": "DiffusersMVSampler",
+  "inputs": {
+   "pipeline": [
+    "4",
+    0
+   ],
+   "num_views": 6,
+   "prompt": "A cute chibi hedgehog character, round fluffy body, big sparkly eyes, soft brown fur, Pixar Disney 3D render style, standing pose, collectible figurine",
+   "negative_prompt": "watermark, ugly, deformed, noisy, blurry, low contrast, extra limbs, bad anatomy",
+   "width": 768,
+   "height": 768,
+   "steps": 50,
+   "cfg": 3,
+   "seed": 21,
+   "reference_image": [
+    "8",
+    0
+   ]
+  }
+ },
+ "7": {
+  "class_type": "LoadImage",
+  "inputs": {
+   "image": "hedgehog_hero.png"
+  }
+ },
+ "8": {
+  "class_type": "ImagePreprocessor",
+  "inputs": {
+   "remove_bg_fn": [
+    "9",
+    0
+   ],
+   "image": [
+    "7",
+    0
+   ],
+   "height": 768,
+   "width": 768
+  }
+ },
+ "9": {
+  "class_type": "BiRefNet",
+  "inputs": {
+   "ckpt_name": "ZhengPeng7/BiRefNet"
+  }
+ },
+ "10": {
+  "class_type": "PreviewImage",
+  "inputs": {
+   "images": [
+    "8",
+    0
+   ]
+  }
+ },
+ "11": {
+  "class_type": "PreviewImage",
+  "inputs": {
+   "images": [
+    "6",
+    0
+   ]
+  }
+ },
+ "12": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "images": [
+    "6",
+    0
+   ],
+   "filename_prefix": "C1_9grid"
+  }
+ }
+}

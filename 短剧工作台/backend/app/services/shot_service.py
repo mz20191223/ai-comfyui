@@ -1,0 +1,332 @@
+"""镜头读取与聚合（界面所需的一切视图数据）。"""
+from __future__ import annotations
+
+from pathlib import Path
+
+from ..core import db
+from ..core.db import jloads
+from . import file_store
+
+# 任务态（动态轨）：从任务表聚合，绝不写入 shots
+ACTIVE_STATUS = ("submitted", "running")
+
+# 任务态枚举 → 界面措辞（唯一事实源，前端直接用，避免前后端措辞漂移）
+TASK_STATUS_LABEL = {
+    "submitted": "已提交",
+    "running": "进行中",
+    "succeeded": "已完成",
+    "failed": "失败",
+    "cancelled": "已取消",
+}
+
+# 失败原因分类 → 人话。来源：provider_engine.detect_quota 判定的 kind + 兜底
+TASK_FAIL_LABEL = {
+    "rate_limit": "接口限流",
+    "insufficient_balance": "余额不足",
+    "auth": "密钥无效",
+    "api_error": "接口错误",
+    "interrupted": "进程中断",
+}
+
+# 单条 SQL 的占位符上限（SQLite 默认 999），留点余量
+_MAX_VARS = 900
+
+
+def _chunks(seq: list) -> list[list]:
+    return [seq[i:i + _MAX_VARS] for i in range(0, len(seq), _MAX_VARS)]
+
+
+def _placeholders(n: int) -> str:
+    return ",".join("?" * n)
+
+
+def _grouped_by_shot(sql_tpl: str, ids: list[int], tail: str = "") -> dict[int, list[dict]]:
+    """把 `... IN ({ph})` 的多行查询结果按 shot_id 分组，一次拿整集。
+
+    替代「逐镜查一次」的 N+1；本机连接开销高，必须批量。
+    """
+    out: dict[int, list[dict]] = {}
+    for part in _chunks(ids):
+        rows = db.query(sql_tpl.format(ph=_placeholders(len(part))) + tail, tuple(part))
+        for r in rows:
+            out.setdefault(r["shot_id"], []).append(r)
+    return out
+
+
+def _task_slot(rows: list[dict], kind: str) -> dict | None:
+    """取该类型「最近一次」任务，转成界面直接可用的一个槽位。没有则 None。"""
+    mine = [r for r in rows if r["task_kind"] == kind]
+    if not mine:
+        return None
+    cur = max(mine, key=lambda r: r["id"])
+    st = cur["status"]
+    fk = cur.get("fail_kind")
+    return {
+        "task_id": cur["id"],
+        "status": st,
+        "label": TASK_STATUS_LABEL.get(st, st),
+        "progress": cur["progress"] or 0,
+        "fail_kind": fk,
+        "fail_label": TASK_FAIL_LABEL.get(fk, fk) if fk else None,
+        # fail_label 是简短分类，message 给「为什么」——优先原始报文（含 stage 前缀），
+        # 太长会撑爆详情页顶部，截断到 300 字
+        "message": ((cur.get("error") or cur.get("fail_message") or "")[:300] or None),
+        "at": cur.get("finished_at") or cur.get("started_at") or cur.get("queued_at"),
+    }
+
+
+def _task_state_from(rows: list[dict]) -> dict:
+    """任务态 = 动态轨。分「出图」「出视频」两个槽位，各显示最近一次任务。"""
+    running = [r for r in rows if r["status"] in ACTIVE_STATUS]
+    return {
+        "image": _task_slot(rows, "image_generation"),
+        "video": _task_slot(rows, "video_generation"),
+        "has_running": bool(running),
+        "running_kinds": sorted({r["task_kind"] for r in running}),
+        "running_count": len(running),
+        "max_progress": max([r["progress"] or 0 for r in running], default=0),
+        "has_failed": any(r["status"] == "failed" for r in rows),
+        "total": len(rows),
+    }
+
+
+_TASK_COLS = ("t.status", "t.task_kind", "t.progress", "t.id",
+              "t.fail_kind", "t.fail_message", "t.error",
+              "t.queued_at", "t.started_at", "t.finished_at")
+
+
+def aggregate_task_state(shot_id: int) -> dict:
+    rows = db.query(
+        f"""SELECT {', '.join(_TASK_COLS)}
+           FROM generation_tasks t
+           JOIN task_links l ON l.task_id = t.id
+           WHERE l.target_kind='shot' AND l.target_id=?""",
+        (shot_id,),
+    )
+    return _task_state_from(rows)
+
+
+def _frames_map(rows: list[dict]) -> dict:
+    return {
+        f["frame_type"]: {"path": f["file_path"], "name": f["file_name"], "source": f["source"]}
+        for f in rows
+    }
+
+
+def _shot_status_summary(shot_id: int) -> dict:
+    frames = _frames_map(db.query(
+        "SELECT * FROM shot_frames WHERE shot_id=? AND is_active=1", (shot_id,)))
+    video_prod = db.query_one(
+        """SELECT t.id, t.status, t.result FROM generation_tasks t JOIN task_links l ON l.task_id=t.id
+           WHERE l.target_kind='shot' AND l.target_id=? AND t.task_kind='video_generation'
+             AND t.status='succeeded' ORDER BY t.id DESC LIMIT 1""",
+        (shot_id,),
+    )
+    image_prod = db.query_one(
+        """SELECT t.id, t.status, t.result FROM generation_tasks t JOIN task_links l ON l.task_id=t.id
+           WHERE l.target_kind='shot' AND l.target_id=? AND t.task_kind='image_generation'
+             AND t.status='succeeded' ORDER BY t.id DESC LIMIT 1""",
+        (shot_id,),
+    )
+    return {
+        "first_frame": frames.get("first"),
+        "last_frame": frames.get("last"),
+        "key_frame": frames.get("key"),
+        "has_video": bool(video_prod),
+        "has_keyframe_output": bool(image_prod),
+    }
+
+
+def list_shots(episode_id: int) -> list[dict]:
+    """整集镜头列表（看板用）。按集批量查，避免逐镜 N+1。"""
+    shots = db.query("SELECT * FROM shots WHERE episode_id=? ORDER BY sort_order, id", (episode_id,))
+    if not shots:
+        return []
+    ids = [s["id"] for s in shots]
+
+    det_rows = _grouped_by_shot("SELECT * FROM shot_details WHERE shot_id IN ({ph})", ids)
+    details = {sid: rows[0] for sid, rows in det_rows.items() if rows}
+    links_v = _grouped_by_shot(
+        "SELECT * FROM shot_asset_links WHERE target_side='video' AND shot_id IN ({ph})",
+        ids, " ORDER BY shot_id, slot_index")
+    links_i = _grouped_by_shot(
+        "SELECT * FROM shot_asset_links WHERE target_side='image' AND shot_id IN ({ph})",
+        ids, " ORDER BY shot_id, slot_index")
+    # 台词：原实现是 `WHERE shot_id=? LIMIT 1`（无 ORDER BY，取 rowid 最小的那条），
+    # 批量时按 (shot_id, id) 排序取首条，语义一致。
+    lines_all = _grouped_by_shot(
+        "SELECT * FROM shot_dialog_lines WHERE shot_id IN ({ph})", ids, " ORDER BY shot_id, id")
+    lines = {sid: rows[0] for sid, rows in lines_all.items() if rows}
+    issues_all = _grouped_by_shot(
+        "SELECT severity, issue_type, message, shot_id FROM health_issues WHERE shot_id IN ({ph})",
+        ids)
+    frames_all = _grouped_by_shot(
+        "SELECT * FROM shot_frames WHERE is_active=1 AND shot_id IN ({ph})", ids)
+    tasks_all = _grouped_by_shot(
+        """SELECT l.target_id AS shot_id, t.status, t.task_kind, t.progress, t.id,
+                  t.fail_kind, t.fail_message, t.error,
+                  t.queued_at, t.started_at, t.finished_at
+           FROM generation_tasks t JOIN task_links l ON l.task_id=t.id
+           WHERE l.target_kind='shot' AND l.target_id IN ({ph})""", ids)
+
+    # 已成功的出图/出片任务（每个镜头每类只要「有没有」）
+    succ = {}
+    for part in _chunks(ids):
+        for r in db.query(
+            """SELECT l.target_id AS shot_id, t.task_kind AS kind, MAX(t.id) AS tid
+               FROM generation_tasks t JOIN task_links l ON l.task_id=t.id
+               WHERE l.target_kind='shot' AND t.status='succeeded'
+                 AND t.task_kind IN ('video_generation','image_generation')
+                 AND l.target_id IN (%s)
+               GROUP BY l.target_id, t.task_kind""" % _placeholders(len(part)), tuple(part)):
+            succ.setdefault(r["shot_id"], set()).add(r["kind"])
+
+    out = []
+    for s in shots:
+        sid = s["id"]
+        d = details.get(sid) or {}
+        lv = links_v.get(sid) or []
+        li = links_i.get(sid) or []
+        line = lines.get(sid)
+        # shot_id 只用于分组，不进输出（与逐镜版返回结构保持一致）
+        issues = [{k: v for k, v in i.items() if k != "shot_id"}
+                  for i in (issues_all.get(sid) or [])]
+        done = succ.get(sid) or set()
+        frames = _frames_map(frames_all.get(sid) or [])
+        out.append(
+            {
+                "id": sid,
+                "shot_code": s["shot_code"],
+                "title": s["title"],
+                "sort_order": s["sort_order"],
+                "duration_sec": d.get("duration_sec"),
+                "gen_mode": d.get("gen_mode"),
+                "api_style": d.get("api_style"),
+                "image_target_name": d.get("image_target_name"),
+                "image_is_optional": d.get("image_is_optional"),
+                "resolution": d.get("resolution"),
+                "video_ref_count": len(lv),
+                "image_ref_count": len(li),
+                "first_ref": (lv[0]["file_name"] if lv else None),
+                "audio_file": line["audio_file"] if line else None,
+                "audio_measured_sec": line["audio_measured_sec"] if line else None,
+                "line_text": line["text"] if line else None,
+                "role_name": line["role_name"] if line else None,
+                "line_start_sec": line["start_sec"] if line else None,
+                "task_state": _task_state_from(tasks_all.get(sid) or []),
+                "status": {
+                    "first_frame": frames.get("first"),
+                    "last_frame": frames.get("last"),
+                    "key_frame": frames.get("key"),
+                    "has_video": "video_generation" in done,
+                    "has_keyframe_output": "image_generation" in done,
+                },
+                "issues": issues,
+                "error_count": sum(1 for i in issues if i["severity"] == "error"),
+                "warn_count": sum(1 for i in issues if i["severity"] == "warn"),
+                "summary": (d.get("summary") or "")[:120],
+            }
+        )
+    return out
+
+
+def _dialog_lines(shot_id: int, project: dict | None) -> list[dict]:
+    """台词行 + 音频素材的真实路径（音频由外部做好后挂上来，工作台不出音频）。"""
+    rows = db.query(
+        "SELECT * FROM shot_dialog_lines WHERE shot_id=? ORDER BY line_index", (shot_id,)
+    )
+    for r in rows:
+        real = file_store.resolve(r.get("audio_file"), project) if r.get("audio_file") else None
+        r["audio_resolved_path"] = str(real) if real else None
+        r["audio_exists"] = bool(real)
+    return rows
+
+
+def get_shot(shot_id: int) -> dict | None:
+    s = db.query_one("SELECT * FROM shots WHERE id=?", (shot_id,))
+    if not s:
+        return None
+    d = db.query_one("SELECT * FROM shot_details WHERE shot_id=?", (shot_id,)) or {}
+    ep = db.query_one("SELECT * FROM episodes WHERE id=?", (s["episode_id"],)) or {}
+    project = db.query_one("SELECT * FROM projects WHERE id=?", (ep.get("project_id"),)) if ep else None
+
+    def _links(side: str) -> list[dict]:
+        rows = db.query(
+            """SELECT l.*, a.name AS asset_name, a.asset_type, ai.file_path AS resolved_path,
+                      ai.width, ai.height
+               FROM shot_asset_links l
+               LEFT JOIN assets a ON a.id = l.asset_id
+               LEFT JOIN asset_images ai ON ai.id = l.asset_image_id
+               WHERE l.shot_id=? AND l.target_side=? ORDER BY l.slot_index""",
+            (shot_id, side),
+        )
+        for r in rows:
+            real = None
+            if r.get("resolved_path") and Path(r["resolved_path"]).exists():
+                real = r["resolved_path"]
+            elif r.get("file_name"):
+                p = file_store.resolve(r["file_name"], project)
+                real = str(p) if p else None
+            r["resolved_path"] = real
+            r["file_exists"] = bool(real)
+            r["is_placeholder"] = file_store.is_placeholder(r.get("file_name"))
+        return rows
+
+    return {
+        "shot": s,
+        "detail": {**d, "beats": jloads(d.get("action_beats"), []), "constraints": jloads(d.get("hard_constraints"), [])},
+        "episode": ep,
+        "project": project,
+        "video_refs": _links("video"),
+        "image_refs": _links("image"),
+        "dialog_lines": _dialog_lines(shot_id, project),
+        "frames": db.query("SELECT * FROM shot_frames WHERE shot_id=? AND is_active=1", (shot_id,)),
+        "tasks": db.query(
+            """SELECT t.*, l.role FROM generation_tasks t LEFT JOIN task_links l ON l.task_id=t.id
+               WHERE l.target_kind='shot' AND l.target_id=? ORDER BY t.id DESC LIMIT 30""",
+            (shot_id,),
+        ),
+        "issues": db.query("SELECT * FROM health_issues WHERE shot_id=?", (shot_id,)),
+        "revisions": db.query(
+            "SELECT id, target_kind, note, source, created_at, length(content) AS len FROM prompt_revisions WHERE target_id=? AND target_kind IN ('shot_video','shot_image') ORDER BY id DESC LIMIT 20",
+            (shot_id,),
+        ),
+        "task_state": aggregate_task_state(shot_id),
+        "status": _shot_status_summary(shot_id),
+    }
+
+
+def next_shot_of(shot_id: int) -> dict | None:
+    """取同集的下一镜（尾帧回流的目标）。"""
+    s = db.query_one("SELECT * FROM shots WHERE id=?", (shot_id,))
+    if not s:
+        return None
+    return db.query_one(
+        "SELECT * FROM shots WHERE episode_id=? AND sort_order>? ORDER BY sort_order LIMIT 1",
+        (s["episode_id"], s["sort_order"]),
+    )
+
+
+def prev_shot_of(shot_id: int) -> dict | None:
+    s = db.query_one("SELECT * FROM shots WHERE id=?", (shot_id,))
+    if not s:
+        return None
+    return db.query_one(
+        "SELECT * FROM shots WHERE episode_id=? AND sort_order<? ORDER BY sort_order DESC LIMIT 1",
+        (s["episode_id"], s["sort_order"]),
+    )
+
+
+def set_first_frame(shot_id: int, file_path: str, source: str = "storyboard", note: str | None = None) -> None:
+    p = Path(file_path)
+    info = file_store.probe(p)
+    db.execute("DELETE FROM shot_frames WHERE shot_id=? AND frame_type='first'", (shot_id,))
+    db.execute(
+        """INSERT INTO shot_frames(shot_id, frame_type, file_path, file_name, source,
+               width, height, format, size_bytes, note)
+           VALUES(?,?,?,?,?,?,?,?,?,?)""",
+        (
+            shot_id, "first", str(p.resolve()), p.name, source,
+            info.get("width"), info.get("height"), info.get("format"), info.get("size_bytes"), note,
+        ),
+    )

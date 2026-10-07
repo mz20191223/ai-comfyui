@@ -1,0 +1,65 @@
+{
+  "1": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": { "ckpt_name": "sd_xl_base_1.0.safetensors" },
+    "_meta": { "title": "Load Checkpoint (SDXL 基座)" }
+  },
+  "8": {
+    "class_type": "LoraLoader",
+    "inputs": {
+      "lora_name": "Canopus-Pixar-Art.safetensors",
+      "strength_model": 0.8,
+      "strength_clip": 0.8,
+      "model": ["1", 0],
+      "clip": ["1", 1]
+    },
+    "_meta": { "title": "Load LoRA (Canopus Pixar Art)" }
+  },
+  "2": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "pixar style, disney pixar, 3d cartoon character, a cute baby hedgehog, round plump body, small soft quills on back, tiny legs, large sparkling glossy eyes, small black button nose, cheerful friendly smile, smooth clay skin between quills, solid pastel light blue clean background, full body shot, centered, front facing viewer, soft studio lighting, octane render, 8k uhd, masterpiece, best quality",
+      "clip": ["8", 1]
+    },
+    "_meta": { "title": "正提示词 (Positive)" }
+  },
+  "3": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "realistic, photo, lowres, bad anatomy, extra limbs, deformed, blurry, watermark, text, signature, human, person, boy, girl, child, dark, scary, multiple animals, duplicate, merged, overlapping, messy, rabbit, cat, dog, bear",
+      "clip": ["8", 1]
+    },
+    "_meta": { "title": "负提示词 (Negative)" }
+  },
+  "4": {
+    "class_type": "EmptyLatentImage",
+    "inputs": { "width": 1024, "height": 1152, "batch_size": 1 },
+    "_meta": { "title": "空Latent图像 (1024x1152)" }
+  },
+  "5": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 246813579,
+      "steps": 30,
+      "cfg": 6,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1.0,
+      "model": ["8", 0],
+      "positive": ["2", 0],
+      "negative": ["3", 0],
+      "latent_image": ["4", 0]
+    },
+    "_meta": { "title": "KSampler" }
+  },
+  "6": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["5", 0], "vae": ["1", 2] },
+    "_meta": { "title": "VAE Decode" }
+  },
+  "7": {
+    "class_type": "SaveImage",
+    "inputs": { "images": ["6", 0] },
+    "_meta": { "title": "保存图像" }
+  }
+}

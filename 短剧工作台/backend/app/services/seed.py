@@ -1,0 +1,412 @@
+"""种子数据：系统模板、提示词片段、Lint 规则、Provider 默认配置。
+
+这些都是「可复用资产」——换剧不用改代码，只在界面里改这里。
+"""
+from __future__ import annotations
+
+from ..core import db
+from ..core.db import jdumps
+
+from . import provider_seed
+
+# ---------------- 提示词模板 ----------------
+
+TEMPLATES: list[dict] = [
+    {
+        "category": "video_prefix",
+        "name": "接口A首行 · I2VA（单图参考）",
+        "description": "I2VA 多图接口的首行模式声明。0.00 秒表示第 1 张图等于视频第 0 帧。",
+        "content": "For the target video, at 0.00 seconds into the target video, <Picture 1> (from [Shot 1]) is fully referenced.",
+        "variables": [],
+        "is_system": 1,
+        "is_default": 1,
+        "sort_order": 1,
+    },
+    {
+        "category": "video_prefix",
+        "name": "接口A首行 · FL2VA（首尾帧对齐）",
+        "description": "首尾帧模式：第 1 张图对齐 0.00 秒，第 2 张图对齐片尾。",
+        "content": (
+            "How the reference pictures align: Picture 1 (from [Shot 1]) aligns with the 0.00-second mark, "
+            "Picture 2 (from [Shot 1]) aligns with the {{ duration }}.00-second mark."
+        ),
+        "variables": [
+            {"name": "duration", "label": "视频时长（秒）", "type": "number", "default": 5, "required": True}
+        ],
+        "is_system": 1,
+        "is_default": 0,
+        "sort_order": 2,
+    },
+    {
+        "category": "keyframe_image",
+        "name": "分镜图提示词骨架",
+        "description": "参考图锁定句 + 画面描述 + 风格尾。参考图N 由镜头勾选的资产自动拼出。",
+        "content": (
+            "{% for r in refs %}参考图{{ loop.index }}（{{ r.name }}）{{ r.take_note }}；{% endfor %}"
+            "{{ ratio_phrase }}。{{ shot_size }}{{ camera_note }}：{{ subject }}。{{ style_tail }}"
+        ),
+        "variables": [
+            {"name": "refs", "label": "参考图列表（自动）", "type": "refs", "required": False},
+            {"name": "ratio_phrase", "label": "构图比例", "type": "text", "default": "竖屏9:16构图"},
+            {"name": "shot_size", "label": "景别", "type": "text", "default": ""},
+            {"name": "camera_note", "label": "机位补充", "type": "text", "default": ""},
+            {"name": "subject", "label": "画面主体", "type": "textarea", "required": True},
+            {"name": "style_tail", "label": "风格尾", "type": "text", "default": "写实摄影，电影质感。"},
+        ],
+        "is_system": 1,
+        "is_default": 1,
+        "sort_order": 1,
+    },
+    {
+        "category": "video_body",
+        "name": "视频提示词骨架（素材声明+主体+时序）",
+        "description": "四层结构：素材声明 → 画面主体 → 时序指令 → 风格。",
+        "content": (
+            "素材关系声明：\n"
+            "{% for a in audio_refs %}Audio {{ loop.index }}：{{ a.role }}音色参考{% if a.text %}，台词\"{{ a.text }}\"{% endif %}\n{% endfor %}"
+            "{% for r in image_refs %}Image {{ loop.index }}：{{ r.file_name }} —— {{ r.take_note }}\n{% endfor %}\n"
+            "画面主体：\n{{ subject }}\n\n"
+            "画面任务指令（严格按时序，画面与声音同步生成）：\n"
+            "{% for b in beats %}{{ b.start }}–{{ b.end }}秒：{{ b.text }}\n{% endfor %}"
+        ),
+        "variables": [
+            {"name": "audio_refs", "label": "音频参考（自动）", "type": "refs", "required": False},
+            {"name": "image_refs", "label": "图片参考（自动）", "type": "refs", "required": False},
+            {"name": "subject", "label": "画面主体", "type": "textarea", "required": True},
+            {"name": "beats", "label": "时序拍点", "type": "beats", "required": False},
+        ],
+        "is_system": 1,
+        "is_default": 1,
+        "sort_order": 1,
+    },
+    {
+        "category": "negative_base",
+        "name": "通用负向词",
+        "description": "所有生成任务共用的负向约束。",
+        "content": (
+            "字幕、水印、logo、文字叠加、黑场、黑帧、淡入、淡出、溶解、叠化、"
+            "画面跳变、景别跳变、人物变形、多余人物、多余肢体"
+        ),
+        "variables": [],
+        "is_system": 1,
+        "is_default": 1,
+        "sort_order": 1,
+    },
+]
+
+# ---------------- 提示词片段（短原子，可在编辑器里 ~ 引用） ----------------
+
+SNIPPETS: list[dict] = [
+    {
+        "key": "transition_guard",
+        "label": "防转场句",
+        "category": "guard",
+        "content": "严禁黑场、黑帧、淡入、淡出、溶解、叠化等任何形式的转场",
+        "auto_apply": jdumps({"stage": "video"}),
+        "sort_order": 1,
+    },
+    {
+        "key": "single_shot",
+        "label": "单一连续镜头",
+        "category": "guard",
+        "content": "本镜为单一连续镜头——严禁 cut、切镜、景别跳变",
+        "auto_apply": jdumps({"stage": "video"}),
+        "sort_order": 2,
+    },
+    {
+        "key": "no_subtitle",
+        "label": "无字幕水印",
+        "category": "guard",
+        "content": "无字幕、无水印、无其他角色人声",
+        "auto_apply": jdumps({"stage": "video"}),
+        "sort_order": 3,
+    },
+    {
+        "key": "line_one_take",
+        "label": "台词一气呵成",
+        "category": "guard",
+        "content": "台词整句一气呵成、一次说完——不得中断、停顿、重复、改词，也不得拆成多个 utterance",
+        "auto_apply": jdumps({"stage": "video", "when": "has_dialogue"}),
+        "sort_order": 4,
+    },
+    {
+        "key": "no_white_model",
+        "label": "白模禁入",
+        "category": "negative",
+        "content": "白模 mp4 永不进 API——参考素材只允许成片帧与规范稿",
+        "auto_apply": None,
+        "sort_order": 5,
+    },
+    {
+        "key": "upper_left_hand",
+        "label": "手持物一律左手",
+        "category": "lock",
+        "content": "手中所持物品一律在左手",
+        "auto_apply": None,
+        "sort_order": 6,
+    },
+    {
+        "key": "lock_sentence_template",
+        "label": "角色锁定句（模板）",
+        "category": "lock",
+        "content": "严格锁定{角色}的面部特征、发型、服饰与体型",
+        "auto_apply": jdumps({"stage": "image,image_prompt"}),
+        "sort_order": 7,
+    },
+    {
+        "key": "same_person",
+        "label": "同一人表述",
+        "category": "lock",
+        "content": "与参考图{n}同一人",
+        "auto_apply": None,
+        "sort_order": 8,
+    },
+    {
+        "key": "concept_reject",
+        "label": "概念稿禁用项",
+        "category": "negative",
+        "content": "严禁复制其拼贴排版、色块说明与色值标注",
+        "auto_apply": jdumps({"stage": "image", "when": "has_concept_ref"}),
+        "sort_order": 9,
+    },
+]
+
+# ---------------- Lint 规则 ----------------
+
+LINT_RULES: list[dict] = [
+    {
+        "key": "cross_shot",
+        "label": "跨镜交代",
+        "description": "提示词里出现「承接上一镜」「视线落点」「上镜尾帧」等跨镜描述——衔接应靠 ref_image_0，不能写进提示词。",
+        "stage": "video",
+        "severity": "error",
+        "checker": "keyword_blacklist",
+        "config": jdumps({"keywords": ["承接上一镜", "承接上镜", "上一镜尾帧", "上镜尾帧", "视线落点", "承接前镜", "延续上一镜", "承接镜头", "与上一镜", "延续上镜"]}),
+        "sort_order": 1,
+    },
+    {
+        "key": "transition_guard",
+        "label": "缺防转场句",
+        "description": "视频提示词/硬约束里没有「严禁黑场、黑帧、淡入、淡出、溶解、叠化」。",
+        "stage": "video",
+        "severity": "error",
+        "checker": "require_phrase",
+        "config": jdumps({"haystack": ["video_prompt", "hard_constraints"], "any_of": ["严禁黑场", "黑场、黑帧", "淡入、淡出"]}),
+        "sort_order": 2,
+    },
+    {
+        "key": "dialog_format",
+        "label": "台词格式",
+        "description": "台词必须加粗独立成句，且不得声明拆成多个 utterance。",
+        "stage": "video",
+        "severity": "warn",
+        "checker": "dialogue_format",
+        "config": jdumps({}),
+        "sort_order": 3,
+    },
+    {
+        "key": "white_model",
+        "label": "白模禁入",
+        "description": "参考素材里出现白模 mp4——白模预演永不进 API。",
+        "stage": "both",
+        "severity": "error",
+        "checker": "ref_blacklist",
+        "config": jdumps({"keywords": ["白模", "white_model", "预演"]}),
+        "sort_order": 4,
+    },
+    {
+        "key": "duration_short",
+        "label": "时长不足",
+        "description": "duration − 台词起点 < 音频实测时长，台词会被截断。",
+        "stage": "video",
+        "severity": "error",
+        "checker": "duration_check",
+        "config": jdumps({"min_tail_sec": 0.2}),
+        "sort_order": 5,
+    },
+    {
+        "key": "subject_scope",
+        "label": "主体越界",
+        "description": "纯怪物镜头里出现人物词，或单角色镜头描述其他角色。",
+        "stage": "video",
+        "severity": "error",
+        "checker": "subject_scope",
+        "config": jdumps({"person_words": ["过客", "林岚", "人物", "他", "男人", "女主"]}),
+        "sort_order": 6,
+    },
+    {
+        "key": "ghost_ref",
+        "label": "幽灵引用",
+        "description": "提示词/参数里点名的参考图在素材目录中不存在。",
+        "stage": "both",
+        "severity": "error",
+        "checker": "file_exists",
+        "config": jdumps({}),
+        "sort_order": 7,
+    },
+    {
+        "key": "internal_code",
+        "label": "内部代号",
+        "description": "提示词里出现内部角色 ID（如「过客」），而参考图没有对应视觉锚点时会干扰模型。",
+        "stage": "both",
+        "severity": "warn",
+        "checker": "internal_code",
+        "config": jdumps({"codes": ["过客", "权限魅影", "死循环妖", "内存黑洞王"]}),
+        "sort_order": 8,
+    },
+    {
+        "key": "decl_missing",
+        "label": "声明未上传",
+        "description": "「Image N」声明了但 ref_image 列表里没有对应项，或反之。",
+        "stage": "video",
+        "severity": "warn",
+        "checker": "decl_consistency",
+        "config": jdumps({}),
+        "sort_order": 9,
+    },
+    {
+        "key": "placeholder_ref",
+        "label": "占位引用未替换",
+        "description": "ref_image 仍是「分镜图」「待生成」这类占位符，未替换为真实文件。",
+        "stage": "both",
+        "severity": "info",
+        "checker": "placeholder_ref",
+        "config": jdumps({}),
+        "sort_order": 10,
+    },
+    {
+        "key": "meta_desc_image",
+        "label": "分镜图元描述",
+        "description": "分镜图提示词里出现「本次调用之外」的信息——时间锚点（视频第几秒 / 首帧 / 尾帧）、工作流黑话（起手态 / 终态 / 将欲动作）、字段名或接口编号。图像模型只有一帧、只做这一次出图，这些它看不见也用不上，只会干扰画面。",
+        "stage": "both",
+        "severity": "error",
+        "checker": "keyword_blacklist",
+        "config": jdumps({
+            "side": "image",
+            "hint": "本次调用之外的信息（时间锚点 / 工作流黑话 / 接口字段）",
+            "suggestion": "分镜图只写「这张图长什么样」：时间与过程交给视频侧，工作流说明移进 > 📋 注释块",
+            "keywords": [
+                "本图是", "本图对应", "本图承接", "本图用于", "本图作为",
+                "视频首帧", "视频尾帧", "视频前", "视频后",
+                "首帧锚点", "尾帧锚点", "首帧", "尾帧",
+                "0.00 秒", "0.00秒", "0.00s",
+                "起手态", "结果态", "终态", "起始态", "将欲动作",
+                "（= Picture", "= Picture", "Picture 1",
+                "ref_image_", "ref_audio_", "duration", "接口A", "接口B",
+                "I2VA", "FL2VA", "连戏",
+            ],
+        }),
+        "sort_order": 11,
+    },
+    {
+        "key": "meta_desc_video",
+        "label": "视频元描述",
+        "description": "视频提示词里出现工作流内部黑话（起手态 / 结果态 / 将欲动作 / 连戏）——模型不懂这些叫法，要用画面本身的语言写。注意「0.00 秒首帧」在视频侧是接口协议必需的，不在禁列。",
+        "stage": "both",
+        "severity": "warn",
+        "checker": "keyword_blacklist",
+        "config": jdumps({
+            "side": "video",
+            "hint": "工作流内部黑话",
+            "suggestion": "换成画面本身的语言（如「起手态」→「双臂垂放、两侧虚空全空」）",
+            "keywords": [
+                "起手态", "结果态", "终态", "起始态", "将欲动作", "连戏",
+                "本档", "上一版", "（= Picture", "= Picture",
+            ],
+        }),
+        "sort_order": 12,
+    },
+    {
+        "key": "ref_slot_drift_image",
+        "label": "分镜图编号错位",
+        "description": "分镜图提示词里的「参考图N」与工作台 image 侧第 N 个槽位不是同一张图。模型按槽位顺序收图，编号与实物错位就会用错锚点——例如把妖的渲染帧当成角色形态锚点，直接画进画面。",
+        "stage": "both",
+        "severity": "error",
+        "checker": "ref_slot_drift",
+        "config": jdumps({
+            "side": "image",
+        }),
+        "sort_order": 13,
+    },
+    {
+        "key": "ref_slot_drift_video",
+        "label": "视频编号错位",
+        "description": "视频提示词里的「Image N」与工作台 video 侧第 N 个槽位（Image N == slot_index+1）不是同一张图。",
+        "stage": "both",
+        "severity": "error",
+        "checker": "ref_slot_drift",
+        "config": jdumps({
+            "side": "video",
+        }),
+        "sort_order": 14,
+    },
+]
+
+# 默认平台配置（三家真实接口）见 services/provider_seed.py
+
+def _provider_id_by_key(key: str) -> int | None:
+    row = db.query_one("SELECT id FROM providers WHERE key=?", (key,))
+    return row["id"] if row else None
+
+
+def seed_all(project_id: int | None = None) -> dict:
+    """写入系统级种子数据（幂等）。"""
+    stats = {"templates": 0, "snippets": 0, "lint_rules": 0, "providers": 0, "models": 0, "credentials": 0}
+
+    for t in TEMPLATES:
+        exists = db.query_one(
+            "SELECT id FROM prompt_templates WHERE project_id IS NULL AND category=? AND name=?",
+            (t["category"], t["name"]),
+        )
+        if exists:
+            continue
+        db.execute(
+            """INSERT INTO prompt_templates(project_id, category, name, description, content,
+                   variables, is_system, is_default, sort_order)
+               VALUES(NULL,?,?,?,?,?,?,?,?)""",
+            (
+                t["category"], t["name"], t["description"], t["content"],
+                jdumps(t["variables"]), t["is_system"], t["is_default"], t["sort_order"],
+            ),
+        )
+        stats["templates"] += 1
+
+    for s in SNIPPETS:
+        exists = db.query_one("SELECT id FROM prompt_snippets WHERE project_id IS NULL AND key=?", (s["key"],))
+        if exists:
+            continue
+        db.execute(
+            """INSERT INTO prompt_snippets(project_id, key, label, content, category, auto_apply, sort_order)
+               VALUES(NULL,?,?,?,?,?,?)""",
+            (s["key"], s["label"], s["content"], s["category"], s["auto_apply"], s["sort_order"]),
+        )
+        stats["snippets"] += 1
+
+    for r in LINT_RULES:
+        exists = db.query_one("SELECT id FROM lint_rules WHERE project_id IS NULL AND key=?", (r["key"],))
+        if exists:
+            continue
+        db.execute(
+            """INSERT INTO lint_rules(project_id, key, label, description, stage, severity, checker, config, sort_order)
+               VALUES(NULL,?,?,?,?,?,?,?,?)""",
+            (r["key"], r["label"], r["description"], r["stage"], r["severity"], r["checker"], r["config"], r["sort_order"]),
+        )
+        stats["lint_rules"] += 1
+
+    # 三家真实平台（DeepSeek 剧本 / ListenHub 出图 / AutoDL H3 出视频）+ 默认模型分配
+    st = provider_seed.seed_platforms()
+    for k in ("providers", "models", "credentials"):
+        stats[k] += st.get(k, 0)
+
+    # 通用开关
+    for k, v, c in (
+        ("auto_extract_tail_frame", "1", "hooks"),
+        ("auto_validate_audio", "1", "hooks"),
+        ("auto_link_tail_to_next", "1", "hooks"),
+        ("tail_link_next_shot", "0", "hooks"),
+    ):
+        exists = db.query_one("SELECT key FROM settings WHERE key=?", (k,))
+        if not exists:
+            db.execute("INSERT INTO settings(key, value, category) VALUES(?,?,?)", (k, v, c))
+
+    return stats

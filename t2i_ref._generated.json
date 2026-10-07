@@ -1,0 +1,126 @@
+{
+  "1": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "sd_xl_base_1.0.safetensors"
+    },
+    "_meta": {
+      "title": "载入 SDXL 基座"
+    }
+  },
+  "4": {
+    "class_type": "LoraLoader",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "clip": [
+        "1",
+        1
+      ],
+      "lora_name": "Canopus-Pixar-Art.safetensors",
+      "strength_model": 0.85,
+      "strength_clip": 0.85
+    },
+    "_meta": {
+      "title": "加载皮克斯 LoRA"
+    }
+  },
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "little rabbit, pixar style, disney pixar 3d cartoon character, cute, round plump body",
+      "clip": [
+        "4",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "正向提示词（由 prompt_expand 注入）"
+    }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "realistic, photo, bad anatomy",
+      "clip": [
+        "4",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "负向提示词（由 prompt_expand 注入）"
+    }
+  },
+  "5": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 832,
+      "height": 1216,
+      "batch_size": 1
+    },
+    "_meta": {
+      "title": "空潜空间（竖图）"
+    }
+  },
+  "3": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ],
+      "seed": 999,
+      "steps": 30,
+      "cfg": 7.0,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1.0
+    },
+    "_meta": {
+      "title": "采样出图"
+    }
+  },
+  "8": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "1",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "VAE 解码"
+    }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "8",
+        0
+      ],
+      "filename_prefix": "refimg"
+    },
+    "_meta": {
+      "title": "保存参考图"
+    }
+  }
+}

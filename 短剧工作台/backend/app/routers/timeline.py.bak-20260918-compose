@@ -1,0 +1,297 @@
+"""时间轴与合成：把各镜成片按镜序拼成整集。
+
+三个能力：
+1. 自动建轴 —— 按镜序扫描已出片视频，落成 timeline_clips（可一键重建）
+2. 手工调轴 —— 单条片段的入出点、顺序、启停、转场
+3. 合成出片 —— 交给任务中心跑 ffmpeg，不阻塞界面
+"""
+from __future__ import annotations
+
+from pathlib import Path
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+
+from ..core import db
+from ..core.db import jloads
+from ..executors import task_runner
+from ..services import file_store, naming
+
+router = APIRouter(prefix="/api", tags=["timeline"])
+
+
+# ---------------- 读 ----------------
+
+def _clip_rows(episode_id: int) -> list[dict]:
+    rows = db.query(
+        """SELECT c.*, s.shot_code FROM timeline_clips c
+           LEFT JOIN shots s ON s.id = c.shot_id
+           WHERE c.episode_id=? ORDER BY c.sort_order, c.id""",
+        (episode_id,),
+    )
+    pos = 0.0
+    for r in rows:
+        r["exists"] = bool(r.get("file_path") and Path(r["file_path"]).exists())
+        d = file_store.probe(r["file_path"]).get("duration_sec") if r["exists"] else None
+        r["source_duration_sec"] = d
+        in_s = r.get("in_sec")
+        out_s = r.get("out_sec")
+        start = in_s if in_s is not None else 0.0
+        end = out_s if out_s is not None else (d or 0.0)
+        r["effective_dur"] = max(0.0, round((end or 0) - (start or 0), 3))
+        if r.get("enabled"):
+            # 供界面预览拼接后的时间轴位置；不等于最终渲染结果
+            r["preview_start"] = round(pos, 3)
+            r["preview_end"] = round(pos + r["effective_dur"], 3)
+            pos += r["effective_dur"]
+        else:
+            r["preview_start"] = r["preview_end"] = None
+    return rows
+
+
+@router.get("/episodes/{episode_id}/timeline")
+def get_timeline(episode_id: int) -> dict:
+    ep = db.query_one("SELECT * FROM episodes WHERE id=?", (episode_id,))
+    if not ep:
+        raise HTTPException(404, "集不存在")
+    clips = _clip_rows(episode_id)
+    enabled = [c for c in clips if c.get("enabled")]
+    return {
+        "episode_id": episode_id,
+        "episode_number": ep["number"],
+        "clips": clips,
+        "summary": {
+            "clip_count": len(clips),
+            "enabled_count": len(enabled),
+            "missing_count": sum(1 for c in clips if not c["exists"]),
+            "total_duration_sec": round(sum(c["effective_dur"] for c in enabled), 2),
+        },
+    }
+
+
+# ---------------- 自动建轴 ----------------
+
+class AutoBuildIn(BaseModel):
+    replace: bool = False
+    include_missing: bool = False
+    reencode_note: str | None = None
+
+
+def _produced_video_of_shot(shot_id: int) -> str | None:
+    """优先取已成功视频任务的产物，其次按命名规律在 video_dir 里找。"""
+    rows = db.query(
+        """SELECT t.result FROM generation_tasks t
+           JOIN task_links l ON l.task_id = t.id
+           WHERE l.target_kind='shot' AND l.target_id=?
+             AND t.task_kind='video_generation' AND t.status='succeeded'
+           ORDER BY t.id DESC""",
+        (shot_id,),
+    )
+    for r in rows:
+        res = jloads(r.get("result"), {}) or {}
+        for f in (res.get("files") or []):
+            p = f.get("path")
+            if p and Path(p).exists():
+                return str(p)
+
+    s = db.query_one(
+        """SELECT s.shot_code, e.number AS ep_num, p.video_dir AS video_dir, p.workspace_dir AS ws
+           FROM shots s JOIN episodes e ON e.id = s.episode_id
+           JOIN projects p ON p.id = e.project_id WHERE s.id=?""",
+        (shot_id,),
+    )
+    if not s:
+        return None
+    dirs = [Path(d) for d in (s.get("video_dir"), s.get("ws")) if d]
+    for nm in naming.keyframe_names(s["shot_code"] or "", s.get("ep_num") or 1):
+        stem = Path(nm).stem
+        for d in dirs:
+            if not d.exists():
+                continue
+            for ext in (".mp4", ".mov", ".webm", ".mkv"):
+                cand = d / f"{stem}{ext}"
+                if cand.exists():
+                    return str(cand.resolve())
+            # 允许「镜号_8bit.mp4」这类派生名
+            for cand in d.glob(f"{stem}*"):
+                if cand.is_file() and cand.suffix.lower() in (".mp4", ".mov", ".webm", ".mkv"):
+                    return str(cand.resolve())
+    return None
+
+
+@router.post("/episodes/{episode_id}/timeline/auto-build")
+def auto_build(episode_id: int, body: AutoBuildIn | None = None) -> dict:
+    """按镜序扫一遍已出片，落成时间轴。默认只补缺失，不覆盖现有手工调整。"""
+    body = body or AutoBuildIn()
+    ep = db.query_one("SELECT * FROM episodes WHERE id=?", (episode_id,))
+    if not ep:
+        raise HTTPException(404, "集不存在")
+    shots = db.query("SELECT * FROM shots WHERE episode_id=? ORDER BY sort_order, id", (episode_id,))
+
+    if body.replace:
+        db.execute("DELETE FROM timeline_clips WHERE episode_id=? AND track_type='video'", (episode_id,))
+
+    existing = {
+        r["shot_id"]: r
+        for r in db.query(
+            "SELECT * FROM timeline_clips WHERE episode_id=? AND track_type='video'", (episode_id,)
+        )
+    }
+    order_start = db.query_one(
+        "SELECT COALESCE(MAX(sort_order), -1) AS m FROM timeline_clips WHERE episode_id=?",
+        (episode_id,),
+    )["m"] + 1
+
+    added, updated, missing = 0, 0, []
+    for i, s in enumerate(shots):
+        path = _produced_video_of_shot(s["id"])
+        if not path:
+            missing.append(s["shot_code"])
+            if not body.include_missing:
+                continue
+        row = existing.get(s["id"])
+        if row:
+            db.execute(
+                "UPDATE timeline_clips SET file_path=?, sort_order=? WHERE id=?",
+                (path, i, row["id"]),
+            )
+            updated += 1
+        else:
+            db.execute(
+                """INSERT INTO timeline_clips(episode_id, track_type, shot_id, file_path, sort_order,
+                       in_sec, out_sec, transition, enabled)
+                   VALUES(?,?,?,?,?,?,?,?,?)""",
+                (episode_id, "video", s["id"], path, i, None, None, "cut", 1),
+            )
+            added += 1
+
+    return {
+        "ok": True,
+        "added": added,
+        "updated": updated,
+        "missing": missing,
+        "skipped_no_video": len(missing),
+        "order_start": order_start,
+    }
+
+
+# ---------------- 增删改 ----------------
+
+class ClipIn(BaseModel):
+    shot_id: int | None = None
+    file_path: str | None = None
+    sort_order: int | None = None
+    in_sec: float | None = None
+    out_sec: float | None = None
+    transition: str | None = "cut"
+    enabled: bool = True
+    note: str | None = None
+
+
+@router.post("/episodes/{episode_id}/timeline/clips")
+def add_clip(episode_id: int, body: ClipIn) -> dict:
+    if not db.query_one("SELECT id FROM episodes WHERE id=?", (episode_id,)):
+        raise HTTPException(404, "集不存在")
+    order = body.sort_order
+    if order is None:
+        order = db.query_one(
+            "SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM timeline_clips WHERE episode_id=?",
+            (episode_id,),
+        )["n"]
+    cid = db.execute(
+        """INSERT INTO timeline_clips(episode_id, track_type, shot_id, file_path, sort_order,
+               in_sec, out_sec, transition, enabled, note)
+           VALUES(?,?,?,?,?,?,?,?,?,?)""",
+        (episode_id, "video", body.shot_id, body.file_path, order, body.in_sec, body.out_sec,
+         body.transition, 1 if body.enabled else 0, body.note),
+    )
+    return db.query_one("SELECT * FROM timeline_clips WHERE id=?", (cid,))
+
+
+@router.patch("/timeline/clips/{clip_id}")
+def patch_clip(clip_id: int, body: dict) -> dict:
+    allowed = {"file_path", "sort_order", "in_sec", "out_sec", "transition", "enabled", "note", "shot_id"}
+    vals: dict = {}
+    for k, v in body.items():
+        if k not in allowed:
+            continue
+        vals[k] = 1 if (k == "enabled" and isinstance(v, bool)) else (0 if (k == "enabled" and v is False) else v)
+    if not vals:
+        raise HTTPException(400, "无可更新字段")
+    cols = ", ".join(f"{k}=?" for k in vals)
+    db.execute(f"UPDATE timeline_clips SET {cols} WHERE id=?", list(vals.values()) + [clip_id])
+    return db.query_one("SELECT * FROM timeline_clips WHERE id=?", (clip_id,))
+
+
+@router.delete("/timeline/clips/{clip_id}")
+def delete_clip(clip_id: int) -> dict:
+    db.execute("DELETE FROM timeline_clips WHERE id=?", (clip_id,))
+    return {"ok": True}
+
+
+@router.post("/episodes/{episode_id}/timeline/reorder")
+def reorder(episode_id: int, body: dict) -> dict:
+    ids: list[int] = body.get("clip_ids") or []
+    for i, cid in enumerate(ids):
+        db.execute(
+            "UPDATE timeline_clips SET sort_order=? WHERE id=? AND episode_id=?", (i, cid, episode_id)
+        )
+    return {"ok": True, "count": len(ids)}
+
+
+# ---------------- 合成 ----------------
+
+class ComposeIn(BaseModel):
+    out_path: str | None = None
+    reencode: bool = True
+
+
+@router.post("/episodes/{episode_id}/compose")
+def compose(episode_id: int, body: ComposeIn | None = None) -> dict:
+    body = body or ComposeIn()
+    if not db.query_one("SELECT id FROM episodes WHERE id=?", (episode_id,)):
+        raise HTTPException(404, "集不存在")
+    enabled = db.query(
+        "SELECT id FROM timeline_clips WHERE episode_id=? AND enabled=1 AND track_type='video'",
+        (episode_id,),
+    )
+    if not enabled:
+        raise HTTPException(400, "时间轴里没有启用的片段（先点「自动建轴」或手动加片段）")
+    tid = task_runner.create_task(
+        "compose",
+        target_kind="episode",
+        target_id=episode_id,
+        role="compose",
+        payload={"episode_id": episode_id, "out_path": body.out_path, "reencode": body.reencode},
+    )
+    return {"ok": True, "task_id": tid}
+
+
+class NormalizeIn(BaseModel):
+    path: str
+
+
+@router.post("/timeline/normalize")
+def normalize(body: NormalizeIn) -> dict:
+    """把任意规格视频转成全片统一规格（8bit/h264/yuv420p/24fps），不覆盖原文件。"""
+    p = Path(body.path)
+    if not p.exists():
+        raise HTTPException(404, f"文件不存在：{body.path}")
+    tid = task_runner.create_task(
+        "normalize_8bit", role="normalize", payload={"src": str(p)}
+    )
+    return {"ok": True, "task_id": tid}
+
+
+@router.get("/episodes/{episode_id}/compose-candidates")
+def compose_candidates(episode_id: int) -> dict:
+    """合成前体检：哪些镜有片子、哪些没有，缺的按镜号列出来。"""
+    shots = db.query("SELECT * FROM shots WHERE episode_id=? ORDER BY sort_order, id", (episode_id,))
+    ok, lack = [], []
+    for s in shots:
+        path = _produced_video_of_shot(s["id"])
+        if path:
+            ok.append({"shot_id": s["id"], "shot_code": s["shot_code"], "path": path})
+        else:
+            lack.append({"shot_id": s["id"], "shot_code": s["shot_code"]})
+    return {"ready": ok, "missing": lack, "ready_count": len(ok), "missing_count": len(lack)}

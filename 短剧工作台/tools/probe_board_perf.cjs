@@ -1,0 +1,71 @@
+/** 看板页加载性能实测：接口耗时 + 首屏可见耗时 + 渲染正确性 */
+const fs = require('fs');
+const PW = 'C:/Users/Administrator/AppData/Roaming/npm/node_modules/@playwright/cli/node_modules/playwright-core';
+const { chromium } = require(PW);
+
+const BASE = process.argv[2] || 'http://127.0.0.1:5192';
+const HASH = process.argv[3] || '#/p/1/board?ep=1';
+
+(async () => {
+  const CAND = [
+    'C:/Program Files/Google/Chrome/Application/chrome.exe',
+    'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+  ];
+  const browser = await chromium.launch({ headless: true, executablePath: CAND.find((p) => fs.existsSync(p)) });
+
+  // 冷启动一次（复现用户第一次打开的场景）
+  for (const pass of ['冷启动', '热重载']) {
+    const ctx = await browser.newContext({ viewport: { width: 1600, height: 950 } });
+    const page = await ctx.newPage();
+    const errs = [];
+    page.on('console', (m) => m.type() === 'error' && errs.push(m.text().slice(0, 160)));
+    page.on('pageerror', (e) => errs.push('pageerror: ' + String(e.message).slice(0, 160)));
+
+    const t0 = Date.now();
+    await page.goto(BASE + '/' + HASH, { waitUntil: 'commit', timeout: 30000 });
+
+    // 等表格真正出现第一行数据（不是 v-loading 遮罩）
+    let appearAt = null;
+    for (let i = 0; i < 200; i++) {
+      const n = await page.evaluate(() => document.querySelectorAll('.el-table__row').length).catch(() => 0);
+      if (n > 0) { appearAt = Date.now() - t0; break; }
+      await page.waitForTimeout(50);
+    }
+    await page.waitForTimeout(1200); // 让缩略图加载完
+
+    const info = await page.evaluate(() => {
+      const nav = performance.getEntriesByType('navigation')[0] || {};
+      const apis = performance.getEntriesByType('resource')
+        .filter((r) => r.name.includes('/api/'))
+        .map((r) => ({ path: r.name.split('/api')[1], ms: Math.round(r.duration) }));
+      const imgs = [...document.querySelectorAll('.mini-thumb img')];
+      return {
+        domContentLoaded: Math.round(nav.domContentLoadedEventEnd || 0),
+        loadEvent: Math.round(nav.loadEventEnd || 0),
+        apis,
+        rows: document.querySelectorAll('.el-table__row').length,
+        thumbs: imgs.length,
+        thumbsLoaded: imgs.filter((i) => i.naturalWidth > 0).length,
+        loadingMask: !!document.querySelector('.el-loading-mask:not([style*="display: none"])'),
+        headText: (document.querySelector('h3')?.innerText || '').replace(/\s+/g, ' ').slice(0, 90),
+        firstRow: (document.querySelector('.el-table__row')?.innerText || '').replace(/\s+/g, ' ').slice(0, 110),
+      };
+    });
+
+    const total = Date.now() - t0;
+    console.log(`\n===== ${pass} =====`);
+    console.log(`  首行出现耗时: ${appearAt === null ? '!! 未出现' : appearAt + ' ms'}`);
+    console.log(`  页面整体稳定: ${total} ms   DOMContentLoaded ${info.domContentLoaded} ms   load ${info.loadEvent} ms`);
+    console.log(`  表格行数: ${info.rows}   缩略图 ${info.thumbsLoaded}/${info.thumbs} 张真实加载`);
+    console.log(`  loading 遮罩仍在: ${info.loadingMask ? '!! 是（没转完）' : '否'}`);
+    console.log(`  顶部栏: ${info.headText}`);
+    console.log(`  首行: ${info.firstRow}`);
+    console.log('  接口耗时:');
+    for (const a of info.apis.sort((x, y) => y.ms - x.ms)) console.log(`    ${String(a.ms).padStart(6)} ms  ${a.path}`);
+    console.log(`  控制台错误: ${errs.length ? errs.join(' | ') : '无'}`);
+
+    await ctx.close();
+  }
+
+  await browser.close();
+})().catch((e) => { console.error('FATAL', e.message); process.exit(1); });

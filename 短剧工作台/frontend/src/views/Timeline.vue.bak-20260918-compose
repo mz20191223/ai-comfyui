@@ -1,0 +1,192 @@
+<template>
+  <div>
+    <div class="card">
+      <h3>
+        <el-select v-model="epId" size="small" style="width:140px" @change="load">
+          <el-option v-for="e in episodes" :key="e.id" :label="`第 ${e.number} 集`" :value="e.id" />
+        </el-select>
+        <span v-if="data" class="tiny muted">
+          {{ data.summary.enabled_count }} / {{ data.summary.clip_count }} 段启用 · 总长 {{ fmtSec(data.summary.total_duration_sec) }}
+        </span>
+        <span v-if="data && data.summary.missing_count" class="pill err">{{ data.summary.missing_count }} 段文件缺失</span>
+        <span class="spacer"></span>
+        <el-button size="small" @click="doAutoBuild(false)" :loading="building">自动建轴（补缺）</el-button>
+        <el-button size="small" @click="doAutoBuild(true)" :loading="building">按镜序重建</el-button>
+        <el-button size="small" @click="checkCandidates" :loading="checking">合成前体检</el-button>
+        <el-button size="small" type="primary" @click="doCompose" :loading="composing">合成整集</el-button>
+      </h3>
+
+      <div class="timeline mb8" v-if="data && data.clips.length">
+        <span
+          v-for="c in data.clips"
+          :key="c.id"
+          class="tl-chip"
+          :class="{ bad: !c.exists }"
+          :style="{ flexGrow: Math.max(c.effective_dur || 0.5, 0.5) }"
+          :title="`${c.shot_code || ''} ${c.effective_dur}s`"
+        >
+          <b>{{ c.shot_code || '—' }}</b>
+          <span class="tiny muted">{{ (c.effective_dur || 0).toFixed(1) }}s</span>
+        </span>
+      </div>
+
+      <el-table border stripe :data="data ? data.clips : []" size="small" v-loading="loading">
+        <el-table-column label="序" width="60">
+          <template #default="{ $index }"><span class="mono">{{ $index + 1 }}</span></template>
+        </el-table-column>
+        <el-table-column label="镜号" width="110">
+          <template #default="{ row }">
+            <a v-if="row.shot_id" class="link" @click="$router.push(`/p/${pid}/shot/${row.shot_id}`)">
+              <b>{{ row.shot_code || row.shot_id }}</b>
+            </a>
+            <span v-else class="muted tiny">—</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="片段文件" min-width="280">
+          <template #default="{ row }">
+            <div class="ellipsis" :title="row.file_path">{{ baseName(row.file_path) || '（未指定）' }}</div>
+            <span class="tiny muted">源长 {{ row.source_duration_sec ?? '?' }}s</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="时长" width="110">
+          <template #default="{ row }">
+            <span class="pill brand">{{ (row.effective_dur || 0).toFixed(2) }}s</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="状态" width="110">
+          <template #default="{ row }">
+            <span v-if="!row.file_path" class="pill warn">没有文件</span>
+            <span v-else-if="!row.exists" class="pill err">文件不存在</span>
+            <span v-else class="pill ok">已就绪</span>
+          </template>
+        </el-table-column>
+        <el-table-column class-name="op-col" label-class-name="op-col" label="操作" width="90">
+          <template #default="{ row }">
+            <div class="op-row">
+              <el-button size="small" type="primary" link @click="preview(row)">预览</el-button>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div v-if="data && !data.clips.length" class="empty">
+        还没有片段。点「自动建轴（补缺）」按镜序把已出片的镜头排进来，再点「合成整集」。
+      </div>
+    </div>
+
+    <el-dialog v-model="showCand" title="合成前体检" width="700px">
+      <div v-if="cand">
+        <div class="mb8">
+          <span class="pill ok">有片子 {{ cand.ready_count }}</span>
+          <span class="pill err" v-if="cand.missing_count">缺 {{ cand.missing_count }}</span>
+        </div>
+        <div v-if="cand.missing_count" class="mb8">
+          <div class="tiny muted mb8">以下镜头还没出片，合成时会缺内容：</div>
+          <span v-for="m in cand.missing" :key="m.shot_id" class="pill warn" style="margin:0 4px 4px 0">
+            <a class="link" @click="goShot(m.shot_id)">{{ m.shot_code }}</a>
+          </span>
+        </div>
+        <div v-else class="muted tiny">全部镜头都有成片，可以直接合成。</div>
+      </div>
+    </el-dialog>
+
+    <el-dialog v-model="showPreview" :title="previewTitle" width="620px">
+      <video v-if="previewPath" :src="fileUrl(previewPath)" controls style="width:100%;border-radius:6px" />
+    </el-dialog>
+  </div>
+</template>
+
+<script setup>
+import { onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import { api, fileUrl } from '../api'
+
+const route = useRoute()
+const router = useRouter()
+const pid = Number(route.params.pid)
+
+const episodes = ref([])
+const epId = ref(null)
+const data = ref(null)
+const loading = ref(false)
+const building = ref(false)
+const composing = ref(false)
+const checking = ref(false)
+const showCand = ref(false)
+const cand = ref(null)
+const showPreview = ref(false)
+const previewPath = ref('')
+const previewTitle = ref('')
+
+function baseName(p) { return String(p || '').split(/[\\/]/).pop() }
+function fmtSec(s) {
+  if (!s) return '0s'
+  const m = Math.floor(s / 60)
+  return m ? `${m}分${Math.round(s % 60)}秒` : `${Math.round(s)}秒`
+}
+function goShot(id) {
+  showCand.value = false
+  router.push(`/p/${pid}/shot/${id}`)
+}
+function preview(row) {
+  if (!row.exists) return ElMessage.warning('文件不存在，无法预览')
+  previewPath.value = row.file_path
+  previewTitle.value = `${row.shot_code || ''} · ${baseName(row.file_path)}`
+  showPreview.value = true
+}
+
+async function load() {
+  if (!epId.value) return
+  loading.value = true
+  try {
+    data.value = await api.timeline(epId.value)
+  } finally {
+    loading.value = false
+  }
+}
+
+async function doAutoBuild(replace) {
+  building.value = true
+  try {
+    const r = await api.autoBuildTimeline(epId.value, { replace, include_missing: false })
+    ElMessage.success(`新增 ${r.added} 段，更新 ${r.updated} 段${r.skipped_no_video ? `，${r.skipped_no_video} 镜暂无成片` : ''}`)
+    await load()
+  } finally {
+    building.value = false
+  }
+}
+async function checkCandidates() {
+  checking.value = true
+  try {
+    cand.value = await api.composeCandidates(epId.value)
+    showCand.value = true
+  } finally {
+    checking.value = false
+  }
+}
+async function doCompose() {
+  composing.value = true
+  try {
+    const r = await api.compose(epId.value, { reencode: true })
+    ElMessage.success(`已开始合成（任务 #${r.task_id}），可在任务中心看进度`)
+  } finally {
+    composing.value = false
+  }
+}
+
+onMounted(async () => {
+  episodes.value = await api.episodes(pid)
+  // ?ep= 传的是集号，不是集 id；按集号在本项目内匹配（无匹配则用本项目第一集）
+  const qEp = Number(route.query.ep)
+  const match = episodes.value.find((e) => e.number === qEp)
+  epId.value = (match && match.id) || (episodes.value[0] && episodes.value[0].id) || null
+  await load()
+})
+</script>
+
+<style scoped>
+.tl-chip { flex: 1 1 auto; min-width: 54px; justify-content: center; overflow: hidden; }
+.tl-chip.bad { border-color: #f3c9c9; background: #fef8f8; }
+.link { color: var(--brand); cursor: pointer; }
+</style>

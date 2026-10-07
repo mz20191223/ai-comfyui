@@ -1,0 +1,79 @@
+{
+  "1": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "moDi-v1-pruned.ckpt"
+    },
+    "_meta": {
+      "title": "Load Checkpoint (mo-di 迪士尼风)"
+    }
+  },
+  "2": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "modern disney style, a cute small baby hedgehog, round plump body, soft short quills on back, tiny legs, small rounded ears, big sparkling expressive eyes, button nose, cheerful friendly smile, solid pastel light blue clean background, full body, masterpiece, best quality",
+      "clip": ["1", 1]
+    },
+    "_meta": {
+      "title": "正提示词 (Positive)"
+    }
+  },
+  "3": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "realistic, photo, lowres, bad anatomy, extra limbs, deformed, blurry, watermark, text, signature, dark, scary, person, human, rabbit ears, long ears",
+      "clip": ["1", 1]
+    },
+    "_meta": {
+      "title": "负提示词 (Negative)"
+    }
+  },
+  "4": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 512,
+      "height": 768,
+      "batch_size": 1
+    },
+    "_meta": {
+      "title": "空Latent图像 (512x768)"
+    }
+  },
+  "5": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 123456789,
+      "steps": 40,
+      "cfg": 7,
+      "sampler_name": "euler_ancestral",
+      "scheduler": "karras",
+      "denoise": 1.0,
+      "model": ["1", 0],
+      "positive": ["2", 0],
+      "negative": ["3", 0],
+      "latent_image": ["4", 0]
+    },
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "6": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["5", 0],
+      "vae": ["1", 2]
+    },
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "7": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": ["6", 0]
+    },
+    "_meta": {
+      "title": "保存图像"
+    }
+  }
+}

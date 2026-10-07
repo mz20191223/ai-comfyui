@@ -1,0 +1,62 @@
+/**
+ * 全页面冒烟：逐个路由打开，检查是否白屏 / 有没有控制台报错 / 有没有 4xx-5xx。
+ * 用法：node tools/smoke_pages.cjs
+ */
+const PW = 'C:/Users/Administrator/AppData/Roaming/npm/node_modules/@playwright/cli/node_modules/playwright-core';
+const { chromium } = require(PW);
+const BASE = 'http://127.0.0.1:5192';
+const EXE = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+const OUT = 'D:/Aicomfyui/短剧工作台/storage/ui-tour';
+
+// 路由以 frontend/src/router/index.js 为准
+const TARGETS = [
+  ['projects', '/'],
+  ['tasks', '/tasks'],
+  ['settings', '/settings'],
+  ['script', '/p/1/script'],
+  ['board', '/p/1/board'],
+  ['shot', '/p/1/shot/113'],
+  ['assets', '/p/1/assets'],
+  ['health', '/p/1/health'],
+  ['prompts', '/p/1/prompts'],
+  ['create', '/p/1/create'],
+  ['timeline', '/p/1/timeline'],
+];
+
+(async () => {
+  const b = await chromium.launch({ headless: true, executablePath: EXE });
+  const p = await (await b.newContext({ viewport: { width: 1600, height: 950 } })).newPage();
+  let errs = [];
+  p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text().slice(0, 160)); });
+  p.on('pageerror', (e) => errs.push('PAGEERROR ' + String(e).slice(0, 160)));
+  p.on('response', (r) => { if (r.status() >= 400) errs.push(`HTTP${r.status()} ${r.url().slice(0, 80)}`); });
+
+  let bad = 0;
+  for (const [name, hash] of TARGETS) {
+    errs = [];
+    await p.goto(BASE + '/?_r=' + Date.now() + '#' + hash, { waitUntil: 'load', timeout: 30000 });
+    await p.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    await p.waitForTimeout(1500);
+    const m = await p.evaluate(() => {
+      const body = document.querySelector('.body');
+      return {
+        hash: location.hash,
+        bodyLen: body ? body.innerText.length : -1,
+        tables: document.querySelectorAll('.el-table').length,
+        overlay: !!document.querySelector('vite-error-overlay'),
+        topText: (document.querySelector('.top')?.innerText || '').replace(/\s+/g, ' ').slice(0, 44),
+      };
+    });
+    const blank = m.bodyLen <= 0 || m.overlay;
+    if (blank) bad++;
+    console.log(
+      `${blank ? '×' : '✓'} ${name.padEnd(10)} ${m.hash.padEnd(16)} 正文${String(m.bodyLen).padEnd(6)} 表${m.tables}` +
+      ` 报错层=${m.overlay ? 'Y' : 'n'} 顶栏「${m.topText}」`,
+    );
+    if (errs.length) console.log('     ERR: ' + [...new Set(errs)].slice(0, 4).join('  |  '));
+    await p.screenshot({ path: `${OUT}/smoke_${name}.png` });
+  }
+  console.log(`\n共 ${TARGETS.length} 页，异常 ${bad} 页`);
+  await b.close();
+  process.exit(bad ? 1 : 0);
+})();

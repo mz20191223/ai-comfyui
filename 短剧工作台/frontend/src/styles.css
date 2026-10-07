@@ -1,0 +1,365 @@
+/* ================================================================
+   字号档位
+   ------------------------------------------------------------------
+   全站字号统一收敛到 --fs-* 变量，切换 <html data-fs="..."> 即整体缩放。
+   默认档 = 大（正文 16.5px）。Element Plus 的字号与控件高度一并跟随，
+   否则 size="small" 的控件不会变大。
+
+   档位：compact(紧凑) / normal(标准) / large(大，默认) / xlarge(特大)
+   想再整体调：改下面 :root 里的一组值即可，其余档位照抄改数字。
+   ================================================================ */
+:root {
+  /* ---------- 字号（默认档 = 大） ---------- */
+  --fs-mini: 13px;     /* 角标、pill、注释、脚注 */
+  --fs-sm: 15px;       /* 次要文本、说明、small 控件 */
+  --fs-base: 16.5px;   /* 正文、表格、输入框 */
+  --fs-lg: 18px;       /* 卡片标题、小标题、页标题 */
+  --fs-xl: 26px;       /* 统计大数字 */
+
+  /* ---------- 联动尺寸（字号变大，这些也得跟着长） ---------- */
+  --ui-side: 236px;    /* 左侧栏宽 */
+  --ui-side-sm: 64px;  /* 左侧栏收起宽 */
+  --ui-top: 58px;      /* 顶栏高 */
+  --ui-kv: 110px;      /* kv 描述列表的标签列宽 */
+  --ui-thumb: 132px;   /* 缩略图卡宽 */
+  --ui-ctl: 36px;      /* 控件高（默认尺寸） */
+  --ui-ctl-sm: 30px;   /* 控件高（small） */
+  --ui-ctl-lg: 46px;   /* 控件高（large） */
+
+  /* ---------- Element Plus 对齐 ---------- */
+  /* 注意：EP 的 extra-small 被 .el-table--small 用（本工作台表格都是 small），
+     所以它必须指向「次要文本」档而不是「角标」档，否则表格字号不跟着变大。 */
+  --el-font-size-extra-small: var(--fs-sm);
+  --el-font-size-small: var(--fs-sm);
+  --el-font-size-base: var(--fs-base);
+  --el-font-size-medium: var(--fs-lg);
+  --el-font-size-large: var(--fs-lg);
+  --el-tag-font-size: var(--fs-mini);
+  --el-component-size: var(--ui-ctl);
+  --el-component-size-small: var(--ui-ctl-sm);
+  --el-component-size-large: var(--ui-ctl-lg);
+
+  /* ---------- 配色（对齐 Element Plus 默认盘） ---------- */
+  --bg: #f0f2f5;         /* 页面底 */
+  --panel: #ffffff;      /* 卡片白 */
+  --border: #dcdfe6;
+  --text: #303133;
+  --text-dim: #909399;
+  --brand: #409eff;      /* EP primary */
+  --ok: #67c23a;
+  --warn: #e6a23c;
+  --err: #f56c6c;
+  --running: #409eff;
+
+  /* ---------- 布局（对齐参考后台） ---------- */
+  --sidebar-bg: #304156;
+  --sidebar-text: #bfcbd9;
+  --sidebar-hover: #263445;
+  --card-radius: 4px;
+}
+
+:root[data-fs='compact'] {
+  --fs-mini: 11px; --fs-sm: 12px; --fs-base: 13px; --fs-lg: 15px; --fs-xl: 20px;
+  --ui-side: 202px; --ui-top: 48px; --ui-kv: 88px; --ui-thumb: 108px;
+  --ui-ctl: 32px; --ui-ctl-sm: 24px; --ui-ctl-lg: 40px;
+}
+:root[data-fs='normal'] {
+  --fs-mini: 12px; --fs-sm: 13.5px; --fs-base: 15px; --fs-lg: 16.5px; --fs-xl: 23px;
+  --ui-side: 220px; --ui-top: 52px; --ui-kv: 98px; --ui-thumb: 120px;
+  --ui-ctl: 34px; --ui-ctl-sm: 27px; --ui-ctl-lg: 43px;
+}
+:root[data-fs='xlarge'] {
+  --fs-mini: 14px; --fs-sm: 16px; --fs-base: 18px; --fs-lg: 20px; --fs-xl: 29px;
+  --ui-side: 256px; --ui-top: 62px; --ui-kv: 124px; --ui-thumb: 148px;
+  --ui-ctl: 38px; --ui-ctl-sm: 32px; --ui-ctl-lg: 50px;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #app {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', Arial, sans-serif;
+  font-size: var(--fs-base);
+}
+
+/* ================================================================
+   外壳：左深色侧栏 + 右白顶栏 + 浅灰内容区
+   ================================================================ */
+.app-wrapper { display: flex; height: 100%; overflow: hidden; }
+
+.sidebar-container {
+  width: var(--ui-side);
+  flex: 0 0 var(--ui-side);
+  background-color: var(--sidebar-bg);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: width .28s, flex-basis .28s;
+}
+.sidebar-container.collapsed { width: var(--ui-side-sm); flex-basis: var(--ui-side-sm); }
+
+.sidebar-container .logo {
+  height: var(--ui-top);
+  flex: 0 0 var(--ui-top);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: var(--fs-lg); font-weight: 600;
+  letter-spacing: .5px;
+  background: rgba(0, 0, 0, .15);
+  white-space: nowrap; overflow: hidden;
+}
+.sidebar-container .el-menu { border-right: none; flex: 1; overflow-y: auto; }
+.sidebar-container .el-menu-item { height: auto; line-height: 1.4; padding: 10px 16px; }
+.sidebar-container .el-menu--collapse .el-menu-item { padding: 10px 0; justify-content: center; }
+.sidebar-container .el-menu-item:hover { background-color: var(--sidebar-hover) !important; }
+.sidebar-container .el-menu-item.is-active { background-color: var(--sidebar-hover) !important; }
+.sidebar-container .el-menu-item .el-icon { font-size: 1.05em; }
+
+.main-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+.navbar {
+  height: var(--ui-top);
+  flex: 0 0 var(--ui-top);
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 0 16px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .08);
+  position: relative; z-index: 10;
+}
+.navbar-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.navbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.collapse-btn { font-size: 20px; cursor: pointer; color: #606266; }
+.collapse-btn:hover { color: var(--brand); }
+
+.app-main { flex: 1; overflow: auto; padding: 16px; background: var(--bg); }
+.app-main.flush { padding: 0; }
+
+/* ================================================================
+   卡片与页面骨架
+   ================================================================ */
+.card,
+.table-wrapper,
+.search-form,
+.page-card {
+  background: var(--panel);
+  border-radius: var(--card-radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.card > h3,
+.page-card > h3 {
+  margin: 0 0 12px; font-size: var(--fs-lg); font-weight: 600;
+  color: var(--text);
+  display: flex; align-items: center; gap: 8px;
+}
+.card > h3 .spacer,
+.page-card > h3 .spacer { flex: 1; }
+.card > h3:last-child { margin-bottom: 0; }
+
+/* 表格卡：标题行 + 表格 + 右下分页 */
+.table-header {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 12px; margin-bottom: 16px;
+}
+.table-header .table-title { font-size: var(--fs-lg); font-weight: 600; color: var(--text); }
+.table-header .table-tip { font-size: var(--fs-sm); color: var(--text-dim); }
+.pagination-wrapper { display: flex; justify-content: flex-end; margin-top: 16px; }
+
+/* 说明/图例条（白底一行） */
+.desc-bar {
+  background: var(--panel); border-radius: var(--card-radius);
+  padding: 12px 16px; margin-bottom: 12px;
+  display: flex; flex-wrap: wrap; gap: 12px 28px;
+  font-size: var(--fs-sm); color: #606266;
+}
+.desc-bar .desc-item { display: flex; align-items: flex-start; gap: 8px; line-height: 1.6; }
+.desc-bar .desc-item .el-tag { flex-shrink: 0; margin-top: 2px; }
+
+.row { display: flex; gap: 12px; }
+.row.wrap { flex-wrap: wrap; }
+.col { flex: 1; min-width: 0; }
+
+.muted { color: var(--text-dim); }
+.tiny { font-size: var(--fs-mini); }
+.mono { font-family: 'Cascadia Mono', Consolas, 'Courier New', monospace; }
+.ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mt8 { margin-top: 8px; } .mt12 { margin-top: 12px; } .mb8 { margin-bottom: 8px; }
+.spacer { flex: 1; }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 1px 8px; border-radius: 10px; font-size: var(--fs-mini); line-height: 1.5;
+  border: 1px solid transparent; white-space: nowrap;
+}
+.pill.gray { background: #f4f4f5; color: #909399; }
+.pill.ok { background: #f0f9eb; color: var(--ok); }
+.pill.warn { background: #fdf6ec; color: var(--warn); }
+.pill.err { background: #fef0f0; color: var(--err); }
+.pill.run { background: #ecf5ff; color: var(--running); }
+.pill.brand { background: #ecf5ff; color: var(--brand); }
+
+.dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.dot.ok { background: var(--ok); }
+.dot.warn { background: var(--warn); }
+.dot.err { background: var(--err); }
+.dot.run { background: var(--running); animation: pulse 1.2s infinite; }
+.dot.gray { background: #c0c4cc; }
+@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
+
+.slot-list { display: flex; flex-direction: column; gap: 6px; }
+.slot {
+  display: flex; gap: 8px; align-items: flex-start;
+  border: 1px solid var(--border); border-radius: var(--card-radius); padding: 6px;
+  background: #fafbfc;
+}
+.slot.missing { border-color: #fbc4c4; background: #fef8f8; }
+.slot .idx {
+  flex: 0 0 26px; height: 26px; border-radius: 4px; background: #f0f2f5;
+  color: #606266; font-size: var(--fs-mini); display: flex; align-items: center; justify-content: center;
+}
+.slot img { width: 58px; height: 58px; object-fit: cover; border-radius: 4px; background: #eee; }
+.slot .meta { flex: 1; min-width: 0; }
+.slot .meta .name { font-size: var(--fs-sm); word-break: break-all; }
+.slot .meta .note { font-size: var(--fs-mini); color: var(--text-dim); margin-top: 2px; line-height: 1.4; }
+
+.thumb-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.thumb {
+  width: var(--ui-thumb); border: 1px solid var(--border); border-radius: var(--card-radius); overflow: hidden;
+  background: #fff; cursor: pointer;
+}
+.thumb img { width: 100%; height: 78px; object-fit: cover; display: block; background: #f2f3f5; }
+.thumb .cap { padding: 4px 6px; font-size: var(--fs-mini); color: var(--text-dim); }
+.thumb.sel { border-color: var(--brand); box-shadow: 0 0 0 2px rgba(64, 158, 255, .18); }
+
+pre.prompt {
+  background: #f7f8fa; border: 1px solid var(--border); border-radius: var(--card-radius);
+  padding: 12px; font-size: var(--fs-sm); line-height: 1.75; white-space: pre-wrap;
+  word-break: break-word; margin: 0; font-family: inherit;
+  max-height: 460px; overflow: auto;
+}
+textarea.prompt-edit {
+  width: 100%; min-height: 260px; font-family: 'Cascadia Mono', Consolas, monospace;
+  font-size: var(--fs-sm); line-height: 1.75; border: 1px solid var(--border); border-radius: var(--card-radius);
+  padding: 10px; resize: vertical;
+}
+
+.kv { display: grid; grid-template-columns: var(--ui-kv) 1fr; gap: 4px 10px; font-size: var(--fs-sm); }
+.kv .k { color: var(--text-dim); }
+.kv .v { word-break: break-word; }
+
+.lint-item { border-left: 3px solid var(--border); padding: 6px 10px; margin-bottom: 6px; background: #fafbfc; border-radius: 0 4px 4px 0; }
+.lint-item.error { border-left-color: var(--err); }
+.lint-item.warn { border-left-color: var(--warn); }
+.lint-item.info { border-left-color: #c0c4cc; }
+.lint-item .msg { font-size: var(--fs-sm); }
+.lint-item .ev { font-size: var(--fs-mini); color: var(--text-dim); margin-top: 3px; word-break: break-all; }
+
+.timeline { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.tl-chip {
+  border: 1px solid var(--border); border-radius: var(--card-radius); padding: 4px 8px; background: #fff;
+  font-size: var(--fs-mini); display: flex; gap: 6px; align-items: center;
+}
+
+.empty { text-align: center; color: var(--text-dim); padding: 48px 0; font-size: var(--fs-base); }
+
+.bar { height: 6px; background: #ebeef5; border-radius: 3px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--brand); }
+
+.log-list { font-family: 'Cascadia Mono', Consolas, monospace; font-size: var(--fs-mini); line-height: 1.8; max-height: 300px; overflow: auto; }
+.log-list .l { border-bottom: 1px dashed #ebeef5; padding: 2px 0; }
+
+/* ================================================================
+   表格
+   ================================================================ */
+.el-table th.el-table__cell { font-weight: 600; color: var(--text); }
+.el-table .cell { line-height: 1.55; }
+
+/* ================================================================
+   Element Plus：small / large 变体里写死的字号与高度 → 跟随档位
+   （EP 内部有 70 处硬编码 12px，但常用的表格/输入/按钮主体都走
+     var(--el-font-size-base)，这里只补 size 变体和次要组件）
+   ================================================================ */
+.el-button--small {
+  --el-button-size: var(--ui-ctl-sm);
+  padding: 0 13px;
+  font-size: var(--fs-sm);
+}
+.el-button--large { font-size: var(--fs-base); }
+.el-input--small,
+.el-select--small,
+.el-date-editor--small,
+.el-checkbox--small .el-checkbox__label,
+.el-radio--small .el-radio__label { font-size: var(--fs-sm); }
+
+/* ⚠️ el-select 是 EP 里唯一「尺寸不读变量」的组件，三档高度全写在 .el-select__wrapper 上：
+     default 32px/14px · small 24px/12px · large 40px/14px
+   而 el-input 走 --el-input-height: var(--el-component-size-*)。
+   不覆盖的话同一行会出现「select 比 input 矮 6px」，也就是几个输入框高度不一。
+   注意必须命中内层 .el-select__wrapper —— 外层 .el-select--small 上的 font-size 会被它盖掉。 */
+.el-select__wrapper {
+  min-height: var(--el-component-size);
+  font-size: var(--el-font-size-base);
+}
+.el-select--small .el-select__wrapper {
+  min-height: var(--el-component-size-small);
+  font-size: var(--el-font-size-extra-small);
+}
+.el-select--large .el-select__wrapper {
+  min-height: var(--el-component-size-large);
+  font-size: var(--el-font-size-medium);
+}
+
+/* 常用次要组件的写死字号 */
+.el-select-dropdown__item,
+.el-dropdown-menu__item,
+.el-pagination,
+.el-form-item__label,
+.el-radio__label,
+.el-checkbox__label,
+.el-descriptions__label,
+.el-descriptions__content,
+.el-tabs__item,
+.el-alert,
+.el-empty__description,
+.el-message,
+.el-message-box__message,
+.el-notification__content { font-size: var(--fs-base); }
+.el-dialog__title,
+.el-drawer__title { font-size: var(--fs-lg); }
+
+/* ================================================================
+   表格「操作」列
+   ------------------------------------------------------------------
+   字号可放大到特大档，按钮文字随之变宽；若让它们自然折行会把行高撑成两倍。
+   这里统一：一行排到底（nowrap）+ 收紧按钮左右内边距与相互间距，
+   再配合各表操作列的足够列宽，保证四档字号下都单行。
+   ================================================================ */
+.op-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+.op-row .el-button { padding: 0 8px; }
+.op-row .el-button + .el-button { margin-left: 2px; }
+/* 操作列里的中性文字按钮 → 蓝色链接（对齐参考后台的「查看/编辑」样式），
+   危险色按钮保持红色：下面两条特异性更高，会盖过上面那条。 */
+.op-row .el-button.is-text { color: var(--brand); }
+.op-row .el-button.is-text.el-button--danger { color: var(--err); }
+.op-row .el-button.is-text.el-button--warning { color: var(--warn); }
+/* 操作列：表头文字与按钮组一起居中（宽列里左对齐会显得悬空） */
+.el-table .op-col .cell { text-align: center; }
+.el-table .op-col .cell .op-row { justify-content: safe center; }
+
+/* 顶栏字号切换控件 */
+.fs-pick { display: flex; flex-direction: column; line-height: 1.3; padding: 2px 0; }
+.fs-pick .t { font-size: var(--fs-base); }
+.fs-pick .h { font-size: var(--fs-mini); color: var(--text-dim); }
+
+/* 顶栏面包屑与侧栏 el-menu 的细节对齐 */
+.navbar .el-breadcrumb { font-size: var(--fs-sm); line-height: 1; }
+.sidebar-container .el-menu--collapse { width: 100%; }

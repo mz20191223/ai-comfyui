@@ -1,0 +1,102 @@
+/**
+ * 浏览器验证：资产库的「上传图片」入口 + 终极Bug王 现在有没有图
+ * 用法：node tools/probe_asset_upload.cjs
+ */
+const PW = 'C:/Users/Administrator/AppData/Roaming/npm/node_modules/@playwright/cli/node_modules/playwright-core';
+const { chromium } = require(PW);
+const BASE = 'http://127.0.0.1:5192';
+const EXE = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+const OUT = 'D:/Aicomfyui/短剧工作台/storage/ui-tour';
+
+(async () => {
+  const b = await chromium.launch({ headless: true, executablePath: EXE });
+  const ctx = await b.newContext({ viewport: { width: 1600, height: 1000 } });
+  const p = await ctx.newPage();
+  const errs = [];
+  p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text().slice(0, 200)); });
+  p.on('pageerror', (e) => errs.push('PAGEERROR ' + String(e).slice(0, 200)));
+
+  await p.goto(`${BASE}/#/p/1/assets`, { waitUntil: 'load', timeout: 30000 });
+  await p.waitForFunction(() => document.querySelectorAll('.asset').length > 0, { timeout: 25000 }).catch(() => {});
+  await p.waitForTimeout(1200);
+
+  const grid = await p.evaluate(() => {
+    const cards = [...document.querySelectorAll('.asset')];
+    return {
+      total: cards.length,
+      noImg: cards.filter((c) => c.querySelector('.no-img')).length,
+      bug: cards
+        .filter((c) => /终极Bug/.test(c.innerText || ''))
+        .map((c) => (c.innerText || '').replace(/\s+/g, ' ').trim()),
+    };
+  });
+  console.log('资产卡片:', grid.total, '| 缺图的:', grid.noImg);
+  grid.bug.forEach((t) => console.log('   ', t));
+  await p.screenshot({ path: OUT + '/assets_grid.png' });
+
+  // 打开「终极Bug王」
+  const opened = await p.evaluate(() => {
+    const c = [...document.querySelectorAll('.asset')].find((x) => /终极Bug王/.test(x.innerText || ''));
+    if (!c) return false;
+    c.click();
+    return true;
+  });
+  await p.waitForTimeout(1800);
+  const drawer = await p.evaluate(() => {
+    const d = [...document.querySelectorAll('.el-drawer')].filter((x) => x.offsetParent !== null).pop();
+    if (!d) return null;
+    const imgs = [...d.querySelectorAll('.thumb')].map((t) => (t.innerText || '').replace(/\s+/g, ' ').trim());
+    return {
+      title: (d.querySelector('.el-drawer__title')?.innerText || '').trim(),
+      buttons: [...d.querySelectorAll('.el-button')].map((x) => (x.innerText || '').trim()).filter(Boolean).slice(0, 6),
+      hasFileInput: !!d.querySelector('input[type=file]'),
+      images: imgs,
+    };
+  });
+  console.log('\n抽屉:', drawer?.title);
+  console.log('  按钮:', drawer?.buttons.join(' / '));
+  console.log('  隐藏文件选择器:', drawer?.hasFileInput ? '有' : '无');
+  console.log('  参考图:', drawer?.images.length ? drawer.images.join(' || ') : '（无）');
+  await p.screenshot({ path: OUT + '/asset_bugking.png' });
+
+  // 真实走一遍上传：给刚才那张图重传同一文件（同名同体积 → 应复用，不产生副本）
+  await p.evaluate(() => {
+    const d = [...document.querySelectorAll('.el-drawer')].filter((x) => x.offsetParent !== null).pop();
+    const btn = [...d.querySelectorAll('.el-button')].find((x) => /上传图片/.test(x.innerText || ''));
+    btn && btn.click();
+  });
+  await p.waitForTimeout(400);
+  await p.setInputFiles('.el-drawer input[type=file]', 'D:/Aicomfyui/minimax3创作内容/角色图/终极Bug魔王_角色参考图.jpg');
+  await p.waitForTimeout(1200);
+  const promptBox = await p.evaluate(() => {
+    const box = [...document.querySelectorAll('.el-message-box')].filter((x) => x.offsetParent !== null).pop();
+    if (!box) return null;
+    return {
+      title: (box.querySelector('.el-message-box__title')?.innerText || '').trim(),
+      input: box.querySelector('input')?.value || '',
+      buttons: [...box.querySelectorAll('.el-button')].map((x) => (x.innerText || '').trim()),
+    };
+  });
+  console.log('\n【UI 上传】文件名弹窗:', promptBox?.title, '| 预填:', promptBox?.input);
+  if (promptBox) {
+    await p.evaluate(() => {
+      const box = [...document.querySelectorAll('.el-message-box')].filter((x) => x.offsetParent !== null).pop();
+      const ok = [...box.querySelectorAll('.el-button')].find((x) => /上传/.test(x.innerText || ''));
+      ok && ok.click();
+    });
+    await p.waitForTimeout(2500);
+    const toast = await p.evaluate(() => {
+      const t = [...document.querySelectorAll('.el-message')].filter((x) => x.offsetParent !== null).pop();
+      return t ? (t.innerText || '').replace(/\s+/g, ' ').trim() : null;
+    });
+    console.log('  结果提示:', toast);
+    const after = await p.evaluate(() => {
+      const d = [...document.querySelectorAll('.el-drawer')].filter((x) => x.offsetParent !== null).pop();
+      return d ? [...d.querySelectorAll('.thumb')].map((t) => (t.innerText || '').replace(/\s+/g, ' ').trim()) : [];
+    });
+    console.log('  参考图:', after.join(' || '));
+  }
+
+  console.log('\n控制台错误:', errs.length ? errs.slice(0, 4).join(' | ') : '无');
+  await b.close();
+})();

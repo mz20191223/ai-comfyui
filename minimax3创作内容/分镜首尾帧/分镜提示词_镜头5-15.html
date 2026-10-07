@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>分镜首尾帧提示词 — 镜头5-15</title>
+<style>
+  :root {
+    --bg: #0d0d12;
+    --panel: #16161e;
+    --border: #2a2a35;
+    --accent: #d4a017;
+    --accent-glow: #f0c040;
+    --text: #e0e0e8;
+    --text-dim: #8888a0;
+    --code-bg: #1a1a24;
+    --red: #e84545;
+    --green: #4ec970;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
+    line-height: 1.7;
+    padding: 40px 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 28px; color: var(--accent-glow); border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 8px; }
+  .subtitle { color: var(--text-dim); font-size: 14px; margin-bottom: 32px; }
+  h2 { font-size: 22px; color: var(--accent); margin: 36px 0 16px; padding-left: 14px; border-left: 4px solid var(--accent); }
+  h3 { font-size: 17px; color: var(--text); margin: 20px 0 10px; display: flex; align-items: center; gap: 8px; }
+  h3 .tag { font-size: 12px; padding: 2px 10px; border-radius: 4px; font-weight: 600; }
+  .tag-first { background: rgba(78,201,112,0.15); color: var(--green); border: 1px solid rgba(78,201,112,0.3); }
+  .tag-last { background: rgba(232,69,69,0.15); color: var(--red); border: 1px solid rgba(232,69,69,0.3); }
+  .scene-desc { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin: 8px 0 12px; font-size: 14px; color: var(--text-dim); }
+  .scene-desc b { color: var(--text); }
+  .prompt-box { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 0; margin: 8px 0 24px; overflow: hidden; }
+  .prompt-header { background: rgba(212,160,23,0.08); border-bottom: 1px solid var(--border); padding: 8px 16px; font-size: 13px; color: var(--text-dim); display: flex; justify-content: space-between; align-items: center; }
+  .prompt-header .platform { color: var(--accent); font-weight: 600; }
+  .prompt-body { padding: 14px 16px; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; color: #c8c8d8; white-space: pre-wrap; word-break: break-word; line-height: 1.6; }
+  .copy-btn { background: rgba(212,160,23,0.12); border: 1px solid rgba(212,160,23,0.3); color: var(--accent-glow); padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; transition: all 0.2s; }
+  .copy-btn:hover { background: rgba(212,160,23,0.25); }
+  .ref-note { background: rgba(212,160,23,0.06); border: 1px dashed rgba(212,160,23,0.3); border-radius: 8px; padding: 12px 18px; margin: 16px 0; font-size: 13px; color: var(--text-dim); }
+  .ref-note b { color: var(--accent); }
+  .ref-upload {
+    background: rgba(78,201,112,0.08);
+    border: 1px solid rgba(78,201,112,0.25);
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin: 8px 0 12px;
+    font-size: 14px;
+    color: var(--green);
+  }
+  .ref-upload b { color: #6dd88a; }
+  .ref-upload code {
+    background: rgba(78,201,112,0.12);
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 13px;
+    color: #8de8a0;
+  }
+  hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+</style>
+</head>
+<body>
+
+<h1>分镜首尾帧提示词 — 镜头5-15</h1>
+<p class="subtitle">《大圣协议：程序员终极幻想》第1集 · 镜头5-15 | 配合角色参考图使用</p>
+
+<div class="ref-note">
+  <b>角色锁定关键词</b>（已内置每条提示词）：28-year-old East Asian male, square jawline, gaunt face, prominent dark circles under eyes (purple-brown discoloration), short messy black hair with M-shaped hairline, narrow inner double eyelids, thin lips, dark charcoal-gray hoodie (zipper half open, white t-shirt), black lanyard with white employee ID badge "过客 ByteFly BF-1024", slim build, slight forward hunch.<br><br>
+  <b>使用方法</b>：在GPT-Image-2对话中上传"过客_角色参考图_标准版.jpg" → 复制下方通用提示词粘贴 → 生成图片 → 下载webp链接给我转JPG
+</div>
+
+<hr>
+
+<!-- ========== 镜头5 ========== -->
+<h2>镜头5 ｜ 内存黑洞王现身</h2>
+<div class="scene-desc">
+  <b>场景：</b>同上，过客工位，从屏幕内部向外<br>
+  <b>景别：</b>特写 → 中景<br>
+  <b>画面：</b>黑色内存曲线撑破终端，化成带巨大黑洞腹部的怪物。订单、头像和缓存碎片被吸入
+</div>
+
+<div class="ref-upload">
+  <b>📸 上传参考图（GPT-Image-2，按顺序上传）：</b><br>
+  图1: <code>过客_角色参考图_标准版.jpg</code> → 程序员角色<br>
+  图2: <code>内存黑洞王_角色参考图.jpg</code> → 黑洞怪物<br>
+  <b>📋 参考图分配已整合在下方提示词内</b>
+</div>
+
+<h3>首帧 <span class="tag tag-first">FIRST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header"><span>通用提示词</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression. REFERENCE IMAGE ASSIGNMENT: Image 1 = the programmer (过客). Image 2 = the Memory Black Hole King monster.
+
+Vertical 9:16 cinematic shot. A dark office desk at night. The computer terminal screen is cracking from within — black swirl lines are pushing through the glass surface, the screen bulging outward. A 28-year-old East Asian male programmer (square jawline, gaunt, dark circles, messy black hair M-shaped hairline, narrow double eyelids, thin lips, dark charcoal-gray hoodie, white t-shirt, black lanyard ID badge "过客 ByteFly BF-1024") sits at the desk, leaning back in his chair in shock, lit from below by an ominous dark-red glow emanating from the cracking screen. Small data icons (order icons, user avatars) are beginning to drift toward the screen. Tense, horror-tinged atmosphere. Photorealistic CGI, dark tech-noir, cinematic lighting, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Midjourney 专用</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16 cinematic shot. Dark office desk at night. Computer terminal screen cracking from within, black swirl lines pushing through glass. A 28-year-old East Asian male programmer (square jawline, gaunt, dark circles, messy black hair, M-shaped hairline, dark charcoal-gray hoodie, white t-shirt, black lanyard ID badge "过客 ByteFly BF-1024") leaning back in chair in shock, lit from below by ominous dark-red glow from cracking screen. Small data icons drifting toward screen. Tense horror-tinged atmosphere. Photorealistic CGI, dark tech-noir, cinematic lighting --cref [URL] --cw 60 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<h3>尾帧 <span class="tag tag-last">LAST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header"><span>通用提示词</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression. REFERENCE IMAGE ASSIGNMENT: Image 1 = the programmer (过客). Image 2 = the Memory Black Hole King monster.
+
+Vertical 9:16 cinematic shot. A massive grotesque black monster — the Memory Black Hole King — has burst out of the computer screen, occupying the UPPER 70% of the frame. Its belly center is a giant rotating black vortex devouring everything. Wears a crown of data cables and metal fragments. Mechanical cable arms reach out grabbing data. Order icons, user avatars, and cache fragments are being sucked into the belly vortex, warping at the edges. In the LOWER 30% of the frame, the 28-year-old programmer (same face: square jawline, dark circles, messy hair, charcoal-gray hoodie, ID badge "过客 ByteFly BF-1024") looks UP at the monster in shock, face lit by dark-red glow from the vortex. Oppressive scale difference. Photorealistic CGI, dark horror tech-noir, cinematic lighting, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Midjourney 专用</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16. Massive grotesque black monster — Memory Black Hole King — burst from computer screen, occupying upper 70% of frame. Belly center giant rotating black vortex devouring data. Crown of data cables and metal fragments. Cable arms grabbing data. Order icons, user avatars sucked into vortex, warping. Lower 30%: 28-year-old East Asian male programmer (square jawline, dark circles, messy hair, charcoal-gray hoodie, ID badge "过客") looks up at monster in shock, face lit by dark-red glow. Oppressive scale. Photorealistic CGI, dark horror tech-noir, cinematic lighting --cref [URL] --cw 60 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<hr>
+
+<!-- ========== 镜头6 ========== -->
+<h2>镜头6 ｜ 死循环妖复制</h2>
+<div class="scene-desc">
+  <b>场景：</b>办公室多块显示器<br>
+  <b>景别：</b>全景感中景，360度环绕<br>
+  <b>画面：</b>错误代码复制到多块显示器，相同面孔从每个屏幕探出
+</div>
+
+<div class="ref-upload">
+  <b>📸 上传参考图（GPT-Image-2，按顺序上传）：</b><br>
+  图1: <code>过客_角色参考图_标准版.jpg</code> → 程序员角色<br>
+  图2: <code>死循环妖_角色参考图.jpg</code> → 死循环妖怪物<br>
+  <b>📋 参考图分配已整合在下方提示词内</b>
+</div>
+
+<h3>首帧 <span class="tag tag-first">FIRST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header"><span>通用提示词</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression. REFERENCE IMAGE ASSIGNMENT: Image 1 = the programmer (过客). Image 2 = the Infinite Loop Demon monster.
+
+Vertical 9:16 cinematic medium shot. A dark open-plan office at night with MULTIPLE computer monitors arranged around the workstation. The same error code is rapidly replicating across all screens simultaneously. From ONE screen, a figure begins to emerge — a male in dark traditional Chinese robes, cold stern expression, black hair slicked back, with a glowing green ∞ symbol on his forehead. Green code waterfalls flow down from his body. The 28-year-old programmer (square jawline, dark circles, messy hair, charcoal-gray hoodie, ID badge "过客 ByteFly BF-1024") stands in the center, turning to look at the emerging figure. Cold green code-glow mixed with dark office. Eerie, escalating tension. Photorealistic CGI, dark tech-noir, cinematic lighting, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Midjourney 专用</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16 cinematic medium shot. Dark office at night, multiple monitors. Same error code replicating across all screens. From one screen, a male in dark traditional Chinese robes emerges — cold stern face, black hair slicked back, glowing green ∞ on forehead, green code waterfalls from body. 28-year-old East Asian programmer (square jawline, dark circles, messy hair, charcoal-gray hoodie, ID badge "过客") stands center turning to look. Cold green code-glow. Eerie escalating tension. Photorealistic CGI, dark tech-noir, cinematic lighting --cref [URL] --cw 60 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<h3>尾帧 <span class="tag tag-last">LAST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header"><span>通用提示词</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression. REFERENCE IMAGE ASSIGNMENT: Image 1 = the programmer (过客). Image 2 = the Infinite Loop Demon monster.
+
+Vertical 9:16 cinematic shot. The dark office is now surrounded by MULTIPLE monitors, and from EVERY screen, identical clones of the Infinite Loop Demon have emerged — same dark traditional robes, same cold face, same glowing green ∞ symbol, all with slightly delayed identical movements. The clones fill the screens from all directions, creating an oppressive "infinite replication" wall. Green code waterfalls cascade from every clone. In the center, the 28-year-old programmer (square jawline, dark circles, messy hair, charcoal-gray hoodie, ID badge "过客 ByteFly BF-1024") stands surrounded, looking around in alarm. All office lights are OFF — only green code-glow illuminates the scene. Suffocating, inescapable atmosphere. Photorealistic CGI, dark tech-noir, cinematic lighting, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Midjourney 专用</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16. Dark office surrounded by multiple monitors. From every screen, identical clones of Infinite Loop Demon emerged — same dark robes, same cold face, same glowing green ∞, slightly delayed movements. Clones fill all screens, infinite replication wall. Green code waterfalls cascade. Center: 28-year-old programmer (square jawline, dark circles, messy hair, charcoal-gray hoodie, ID badge "过客") surrounded, alarmed. Office lights OFF, only green code-glow. Suffocating atmosphere. Photorealistic CGI, dark tech-noir, cinematic lighting --cref [URL] --cw 60 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<hr>
+
+<!-- ========== 镜头7 ========== -->
+<h2>镜头7 ｜ 权限魅影贴近</h2>
+<div class="scene-desc">
+  <b>场景：</b>过客工位背后<br>
+  <b>景别：</b>近景，背后低机位<br>
+  <b>画面：</b>黑雾从画面四角汇聚到过客耳边，过客回头空无一人
+</div>
+
+<div class="ref-upload">
+  <b>📸 上传参考图（GPT-Image-2，按顺序上传）：</b><br>
+  图1: <code>过客_角色参考图_标准版.jpg</code> → 程序员角色<br>
+  图2: <code>权限魅影_角色参考图.jpg</code> → 权限魅影怪物<br>
+  <b>📋 参考图分配已整合在下方提示词内</b>
+</div>
+
+<h3>首帧 <span class="tag tag-first">FIRST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header"><span>通用提示词</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression. REFERENCE IMAGE ASSIGNMENT: Image 1 = the programmer (过客). Image 2 = the Permission Phantom monster.
+
+Vertical 9:16 cinematic close-up, shot from BEHIND the character at low angle. The 28-year-old programmer (square jawline visible from side, dark circles, messy black hair, M-shaped hairline, dark charcoal-gray hoodie, white t-shirt, black lanyard ID badge "过客 ByteFly BF-1024") sits at his desk. Black smoke is beginning to seep from the four corners of the frame, slowly converging toward his right shoulder/ear area. In the smoke, faint user login avatar icons (small square frames with human silhouettes) flicker and change. Deep purple glow on the right side. The character hasn't noticed yet. Ominous, creeping horror atmosphere. Photorealistic CGI, dark tech-noir, cinematic lighting, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Midjourney 专用</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16 cinematic close-up, from BEHIND character at low angle. 28-year-old programmer (square jawline from side, dark circles, messy black hair, charcoal-gray hoodie, ID badge "过客") sits at desk. Black smoke seeping from four corners of frame, converging toward his right shoulder/ear. Faint user login avatar icons flickering in smoke. Deep purple glow on right side. Character hasn't noticed. Ominous creeping horror. Photorealistic CGI, dark tech-noir, cinematic lighting --cref [URL] --cw 70 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<h3>尾帧 <span class="tag tag-last">LAST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header"><span>通用提示词</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression. REFERENCE IMAGE ASSIGNMENT: Image 1 = the programmer (过客). Image 2 = the Permission Phantom monster.
+
+Vertical 9:16 cinematic close-up, from behind at low angle. The 28-year-old programmer (same face, hoodie, ID badge "过客 ByteFly BF-1024") has just turned his head sharply to the RIGHT — but there is NOTHING there, only dark empty office. However, on his LEFT side, the black smoke has reformed into a semi-humanoid shape with a pair of shifting "login eyes" (pupils that cycle through different user avatars) and 6-8 floating user avatar icons orbiting the smoke body. The character's hand reaches out toward the smoke but grasps nothing. Deep purple glow dominates. Eerie, ghostly, "you can see it but can't catch it" atmosphere. Photorealistic CGI, dark tech-noir, cinematic lighting, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Midjourney 专用</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16 cinematic close-up, from behind at low angle. 28-year-old programmer (same face, hoodie, ID badge "过客") turned head sharply RIGHT — nothing there, dark empty office. On LEFT side, black smoke reformed into semi-humanoid with shifting "login eyes" cycling through user avatars, 6-8 floating avatar icons orbiting. Character's hand reaches toward smoke grasps nothing. Deep purple glow. Eerie ghostly atmosphere. Photorealistic CGI, dark tech-noir, cinematic lighting --cref [URL] --cw 70 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<hr>
+
+<!-- ========== 镜头8 ========== -->
+<h2>镜头8 ｜ 三魔同框与现实压力</h2>
+<div class="scene-desc">
+  <b>场景：</b>过客工位，正面<br>
+  <b>景别：</b>全景构图，三块屏幕垂直层级<br>
+  <b>画面：</b>上方黑洞王、左下死循环妖、右下权限魅影；过客居中仰视
+</div>
+
+<div class="ref-upload">
+  <b>📸 上传参考图（GPT-Image-2，按顺序上传）：</b><br>
+  图1: <code>过客_角色参考图_标准版.jpg</code> → 程序员角色<br>
+  图2: <code>内存黑洞王_角色参考图.jpg</code> → 黑洞怪物<br>
+  图3: <code>死循环妖_角色参考图.jpg</code> → 死循环妖<br>
+  图4: <code>权限魅影_角色参考图.jpg</code> → 权限魅影<br>
+  <b>📋 参考图分配已整合在下方提示词内</b>
+</div>
+
+<h3>首帧 <span class="tag tag-first">FIRST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header"><span>通用提示词</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression. REFERENCE IMAGE ASSIGNMENT: Image 1 = the programmer (过客). Image 2 = the Memory Black Hole King. Image 3 = the Infinite Loop Demon. Image 4 = the Permission Phantom.
+
+Vertical 9:16 cinematic full-shot, front-facing. The 28-year-old programmer (square jawline, gaunt, dark circles, messy black hair, charcoal-gray hoodie, ID badge "过客 ByteFly BF-1024") sits in his chair at the desk, left hand holding phone to ear. He is looking UP at three monstrous entities arranged in a vertical layered composition: TOP — the Memory Black Hole King (grotesque black obese monster, belly vortex spinning, cable crown). BOTTOM-LEFT — the Infinite Loop Demon (dark traditional robes, cold face, green ∞ symbol, multiple identical clones behind him). BOTTOM-RIGHT — the Permission Phantom (black smoke entity with shifting login eyes, floating user avatar icons). Red countdown "00:18:42" in upper-right corner. The three demons loom over the small figure of the programmer. Oppressive, overwhelming atmosphere. Low-frequency drum mood. Photorealistic CGI, dark tech-noir, cinematic lighting, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Midjourney 专用</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16 cinematic full-shot, front-facing. 28-year-old programmer (square jawline, dark circles, messy hair, charcoal-gray hoodie, ID badge "过客") sits in chair, left hand phone to ear, looking UP. Three demons in vertical layers: TOP — Memory Black Hole King (obese black monster, belly vortex, cable crown). BOTTOM-LEFT — Infinite Loop Demon (dark robes, cold face, green ∞, clones behind). BOTTOM-RIGHT — Permission Phantom (black smoke, shifting login eyes, floating avatars). Red countdown "00:18:42" upper-right. Demons loom over small programmer. Oppressive overwhelming. Photorealistic CGI, dark tech-noir, cinematic lighting --cref [URL] --cw 60 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<h3>尾帧 <span class="tag tag-last">LAST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header"><span>通用提示词</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression. REFERENCE IMAGE ASSIGNMENT: Image 1 = the programmer (过客). Image 2 = the Memory Black Hole King. Image 3 = the Infinite Loop Demon. Image 4 = the Permission Phantom.
+
+Vertical 9:16 cinematic full-shot, front-facing. Same composition — three demons loom above (top: Black Hole King, bottom-left: Loop Demon clones, bottom-right: Permission Phantom smoke). But now the 28-year-old programmer (same face, hoodie, ID badge "过客 ByteFly BF-1024") has his head lifted, making direct EYE CONTACT with the demons above. His expression has shifted from fear to defiant stubbornness — jaw clenched, dark-circled eyes burning with quiet resistance. Still pinned in his chair, shoulders hunched but gaze unyielding. Phone still at ear. The demons lean slightly closer, pressing down. Red countdown ticking. Low-frequency drums intensifying. Photorealistic CGI, dark tech-noir, cinematic lighting, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Midjourney 专用</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16. Three demons loom above (top: Black Hole King, bottom-left: Loop Demon clones, bottom-right: Permission Phantom). 28-year-old programmer (square jawline, dark circles, messy hair, charcoal-gray hoodie, ID badge "过客") head lifted, direct EYE CONTACT with demons. Expression: defiant stubbornness, jaw clenched, dark-circled eyes burning. Pinned in chair, shoulders hunched, gaze unyielding. Phone at ear. Demons lean closer. Red countdown ticking. Photorealistic CGI, dark tech-noir, cinematic lighting --cref [URL] --cw 60 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<hr>
+
+<!-- ========== 镜头9 ========== -->
+<h2>镜头9 ｜ 过客开始反击</h2>
+<div class="scene-desc">
+  <b>场景：</b>过客工位键盘<br>
+  <b>景别：</b>手部特写 → 中近景<br>
+  <b>画面：</b>三个终端窗口依次打开：限流、缓存隔离、异常权限回收
+</div>
+
+<div class="ref-upload"><b>📸 上传参考图（GPT-Image-2）：</b><code>过客_角色参考图_标准版.jpg</code></div>
+
+<h3>首帧 <span class="tag tag-first">FIRST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header"><span>通用提示词</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression.
+
+Vertical 9:16 cinematic overhead shot looking down at a keyboard in a dark office. A male hand (28-year-old programmer's hand, callused fingers, simple black wristwatch, hoodie sleeve visible) is poised above the mechanical keyboard, about to start typing rapidly. One terminal window is just beginning to open on the monitor behind. Cold blue-white monitor glow on the hand and keycaps. Focused, determined, "about to fight back" atmosphere. Photorealistic CGI, dark tech-noir, cinematic lighting, shallow depth of field, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Midjourney 专用</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16 cinematic overhead shot. Keyboard in dark office. Male hand (callused fingers, black wristwatch, hoodie sleeve) poised above mechanical keyboard about to type. One terminal window beginning to open on monitor. Cold blue-white glow on hand and keycaps. Focused determined atmosphere. Photorealistic CGI, dark tech-noir, cinematic lighting, shallow depth of field --cref [URL] --cw 50 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<h3>尾帧 <span class="tag tag-last">LAST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header"><span>通用提示词</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression.
+
+Vertical 9:16 cinematic medium close-up. The 28-year-old programmer (square jawline, gaunt, dark circles, messy black hair, charcoal-gray hoodie, ID badge "过客 ByteFly BF-1024") is typing furiously, fingers flying across the keyboard with motion blur. On the monitor behind, THREE terminal windows are now open side by side, each showing a green progress bar: "RATE LIMIT" "CACHE ISOLATION" "PERMISSION REVOKE". The screen glow has shifted from cold blue-white to GREEN. The programmer's face shows the first hint of a confident smirk — "gotcha" expression. Eyes locked on screen. Determined, counter-attacking energy. Photorealistic CGI, dark tech-noir, cinematic lighting, slight motion blur on hands, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Midjourney 专用</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16 cinematic medium close-up. 28-year-old programmer (square jawline, dark circles, messy hair, charcoal-gray hoodie, ID badge "过客") typing furiously, fingers motion blur. THREE terminal windows open on monitor, each showing green progress bar: "RATE LIMIT" "CACHE ISOLATION" "PERMISSION REVOKE". Screen glow shifted to GREEN. Face shows first confident smirk — "gotcha". Eyes locked on screen. Counter-attacking energy. Photorealistic CGI, dark tech-noir, cinematic lighting, motion blur on hands --cref [URL] --cw 80 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<hr>
+
+<!-- ========== 镜头10 ========== -->
+<h2>镜头10 ｜ 第一次小爽点</h2>
+<div class="scene-desc">
+  <b>场景：</b>三个快切特写<br>
+  <b>景别：</b>蒙太奇快切<br>
+  <b>画面：</b>死循环分身减少；黑洞王被隔离；权限魅影露手臂
+</div>
+
+<div class="ref-upload">
+  <b>📸 上传参考图（GPT-Image-2，按顺序上传）：</b><br>
+  图1: <code>过客_角色参考图_标准版.jpg</code> → 程序员角色<br>
+  图2: <code>内存黑洞王_角色参考图.jpg</code> → 黑洞怪物<br>
+  图3: <code>死循环妖_角色参考图.jpg</code> → 死循环妖<br>
+  图4: <code>权限魅影_角色参考图.jpg</code> → 权限魅影<br>
+  <b>📋 参考图分配已整合在下方提示词内</b>
+</div>
+
+<h3>首帧 <span class="tag tag-first">FIRST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header"><span>通用提示词</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression. REFERENCE IMAGE ASSIGNMENT: Image 1 = the programmer (过客). Image 2 = the Memory Black Hole King. Image 3 = the Infinite Loop Demon. Image 4 = the Permission Phantom.
+
+Vertical 9:16 cinematic shot, split into three horizontal bands (montage composition). TOP BAND: The Infinite Loop Demon's clones have drastically reduced — only 2-3 remain on screens, looking weakened, green ∞ flickering. MIDDLE BAND: The Memory Black Hole King's belly vortex is now constrained by a glowing GREEN isolation frame, the vortex spinning slower, struggling. BOTTOM BAND: The Permission Phantom's black smoke has been forced into a semi-solid state — a half-exposed arm made of dark smoke is visible, reaching out helplessly. Green success light dominates. Photorealistic CGI, dark tech-noir, cinematic lighting, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Midjourney 专用</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16, split into three horizontal bands (montage). TOP: Infinite Loop Demon clones reduced to 2-3, weakened, green ∞ flickering. MIDDLE: Memory Black Hole King belly vortex constrained by green isolation frame, spinning slower. BOTTOM: Permission Phantom black smoke forced semi-solid, half-exposed dark smoke arm reaching helplessly. Green success light dominates. Photorealistic CGI, dark tech-noir, cinematic lighting --cref [URL] --cw 30 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<h3>尾帧 <span class="tag tag-last">LAST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header"><span>通用提示词</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression. REFERENCE IMAGE ASSIGNMENT: Image 1 = the programmer (过客). Image 2 = the Memory Black Hole King. Image 3 = the Infinite Loop Demon. Image 4 = the Permission Phantom.
+
+Vertical 9:16 cinematic close-up. The 28-year-old programmer (square jawline, gaunt, dark circles, messy black hair, charcoal-gray hoodie, ID badge "过客 ByteFly BF-1024") has his head slightly raised, a confident "gotcha" smirk on his face — the first moment of triumph. Green progress light from the monitor illuminates his face from below. But in the background behind him, dark shadows of the three demons are beginning to swell and darken again — the green light is being overridden by rising red/black. A brief moment of victory about to be crushed. Photorealistic CGI, dark tech-noir, cinematic lighting, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Midjourney 专用</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16 cinematic close-up. 28-year-old programmer (square jawline, dark circles, messy hair, charcoal-gray hoodie, ID badge "过客") head slightly raised, confident "gotcha" smirk — first moment of triumph. Green progress light from monitor illuminates face from below. Background: dark shadows of three demons swelling, darkening, green being overridden by rising red/black. Brief victory about to be crushed. Photorealistic CGI, dark tech-noir, cinematic lighting --cref [URL] --cw 80 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<hr>
+
+<!-- ========== 镜头11 ========== -->
+<h2>镜头11 ｜ 补丁被反杀</h2>
+<div class="scene-desc">
+  <b>场景：</b>过客工位，低角度仰拍<br>
+  <b>景别：</b>中景<br>
+  <b>画面：</b>三魔同时反扑，过客僵住意识到根因
+</div>
+
+<div class="ref-upload">
+  <b>📸 上传参考图（GPT-Image-2，按顺序上传）：</b><br>
+  图1: <code>过客_角色参考图_标准版.jpg</code> → 程序员角色<br>
+  图2: <code>内存黑洞王_角色参考图.jpg</code> → 黑洞怪物<br>
+  图3: <code>死循环妖_角色参考图.jpg</code> → 死循环妖<br>
+  图4: <code>权限魅影_角色参考图.jpg</code> → 权限魅影<br>
+  <b>📋 参考图分配已整合在下方提示词内</b>
+</div>
+
+<h3>首帧 <span class="tag tag-first">FIRST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header"><span>通用提示词</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression. REFERENCE IMAGE ASSIGNMENT: Image 1 = the programmer (过客). Image 2 = the Memory Black Hole King. Image 3 = the Infinite Loop Demon. Image 4 = the Permission Phantom.
+
+Vertical 9:16 cinematic shot, LOW ANGLE looking up. Three demons counterattacking simultaneously: Memory Black Hole King's belly vortex EXPLODES outward, swallowing back the green isolation frame. Infinite Loop Demon clones BURGEON — dozens of identical faces pouring out of screens. Permission Phantom's black smoke ERASES terminal log text — lines of text dissolving into nothing. The green progress bars are being crushed. In the foreground bottom, the 28-year-old programmer (same face, hoodie, ID badge "过客 ByteFly BF-1024") is visible from behind, his confident expression crumbling into shock. Red and black light overpowering green. Photorealistic CGI, dark tech-noir, cinematic lighting, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Midjourney 专用</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16, LOW ANGLE looking up. Three demons counterattacking: Black Hole King vortex EXPLODES swallowing green isolation frame. Loop Demon clones BURGEON — dozens of identical faces pouring from screens. Permission Phantom smoke ERASES terminal log text — lines dissolving. Green progress bars crushed. Foreground bottom: 28-year-old programmer (dark circles, messy hair, hoodie, ID badge "过客") from behind, confident expression crumbling to shock. Red-black overpowering green. Photorealistic CGI, dark tech-noir, cinematic lighting --cref [URL] --cw 60 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<h3>尾帧 <span class="tag tag-last">LAST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header"><span>通用提示词</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression. REFERENCE IMAGE ASSIGNMENT: Image 1 = the programmer (过客). Image 2 = the Memory Black Hole King. Image 3 = the Infinite Loop Demon. Image 4 = the Permission Phantom.
+
+Vertical 9:16 cinematic medium shot, low angle. The 28-year-old programmer (square jawline, gaunt, dark circles, messy black hair, charcoal-gray hoodie, ID badge "过客 ByteFly BF-1024") is FROZEN in his chair, head tilted up. His expression has shifted from shock to a dawning horrified realization — mouth slightly open, eyes wide, "this is deeper than I thought." Three demon shadows tower behind/above him, overlapping like judges. The green is completely gone. Only deep red and black dominate. The programmer looks small and pinned. Desperate, suffocating atmosphere. Photorealistic CGI, dark tech-noir, cinematic lighting, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Midjourney 专用</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16 medium shot, low angle. 28-year-old programmer (square jawline, dark circles, messy hair, charcoal-gray hoodie, ID badge "过客") FROZEN in chair, head up. Expression: dawning horrified realization — mouth open, eyes wide. Three demon shadows tower behind, overlapping like judges. Green completely gone. Deep red and black dominate. Programmer looks small and pinned. Desperate suffocating. Photorealistic CGI, dark tech-noir, cinematic lighting --cref [URL] --cw 80 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<hr>
+
+<!-- ========== 镜头12 ========== -->
+<h2>镜头12 ｜ 根因级灾难提示</h2>
+<div class="scene-desc">
+  <b>场景：</b>过客工位，正面<br>
+  <b>景别：</b>极近特写<br>
+  <b>画面：</b>所有窗口黑屏，倒计时00:00:59，电话断开，黑屏中央金色细线
+</div>
+
+<div class="ref-upload"><b>📸 上传参考图（GPT-Image-2）：</b><code>过客_角色参考图_标准版.jpg</code></div>
+
+<h3>首帧 <span class="tag tag-first">FIRST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header"><span>通用提示词</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression.
+
+Vertical 9:16 cinematic extreme close-up, front-facing. All terminal windows on the monitor have gone BLACK simultaneously, with glitch frame-skipping artifacts. Red countdown shows "00:00:59" flashing urgently. The 28-year-old programmer (square jawline, gaunt, dark circles, messy black hair, charcoal-gray hoodie, ID badge "过客 ByteFly BF-1024") has STOOD UP from his chair — first time losing control — mouth open shouting, face contorted in distress. He holds his phone in one hand, the call disconnected. All ambient sound has been sucked out — visual silence. Only the red countdown and server fan glow remain. Extreme cold, oppressive isolation. Photorealistic CGI, dark tech-noir, cinematic lighting, glitch artifacts, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Midjourney 专用</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16 extreme close-up, front-facing. All terminal windows gone BLACK, glitch frame-skipping. Red countdown "00:00:59" flashing. 28-year-old programmer (square jawline, dark circles, messy hair, charcoal-gray hoodie, ID badge "过客") STOOD UP from chair, mouth open shouting, distressed. Phone in hand, call disconnected. Cold oppressive isolation. Photorealistic CGI, dark tech-noir, cinematic lighting, glitch artifacts --cref [URL] --cw 80 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<h3>尾帧 <span class="tag tag-last">LAST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header"><span>通用提示词</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression.
+
+Vertical 9:16 cinematic shot. The screen is now COMPLETELY BLACK — pure darkness. In the exact center of the black screen, a single THIN GOLD LINE has appeared, glowing faintly, like a crack in reality. The 28-year-old programmer (same face, hoodie, ID badge "过客 ByteFly BF-1024") stands frozen, his face lit only by this thin golden line — expression transitioning from despair to bewilderment. The golden light is tiny but striking against the total darkness. Mysterious, pivotal transition moment. Distant war drums barely audible. Photorealistic CGI, dark tech-noir, cinematic lighting, high contrast darkness vs golden line, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Midjourney 专用</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16. Screen completely BLACK — pure darkness. Exact center: a single THIN GOLD LINE appeared, glowing faintly, crack in reality. 28-year-old programmer (square jawline, dark circles, messy hair, hoodie, ID badge "过客") stands frozen, face lit only by golden line — expression from despair to bewilderment. Golden light tiny but striking against darkness. Mysterious pivotal transition. Photorealistic CGI, dark tech-noir, high contrast darkness vs golden line --cref [URL] --cw 80 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<hr>
+
+<!-- ========== 镜头13 ========== -->
+<h2>镜头13 ｜ 信息钩子 · 大圣协议提示</h2>
+<div class="scene-desc">
+  <b>场景：</b>过客侧脸到屏幕<br>
+  <b>景别：</b>近景 → 极近特写<br>
+  <b>画面：</b>金色细线展开成古老眼睛图标，文字逐字出现
+</div>
+
+<div class="ref-upload"><b>📸 上传参考图（GPT-Image-2）：</b><code>过客_角色参考图_标准版.jpg</code></div>
+
+<h3>首帧 <span class="tag tag-first">FIRST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header"><span>通用提示词</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression.
+
+Vertical 9:16 cinematic close-up, shot from the character's side profile, looking toward the screen. The golden thin line on the black screen has expanded into an ANCIENT EYE SYMBOL — a stylized eye shape radiating golden light. Below the eye, golden text is appearing letter by letter: "检测到根因级灾难" (first line complete), "检测到唯一适配者：过客" (second line appearing). The 28-year-old programmer's face (side profile: square jawline, dark circles, messy black hair, M-shaped hairline, narrow eyes) is lit by the golden text glow — expression shifting from bewilderment to shock. His ID badge "过客 ByteFly BF-1024" catches the golden light. Low metallic chime, distant war drums. Photorealistic CGI, dark tech-noir, golden vs dark contrast, cinematic lighting, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Midjourney 专用</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16 close-up, character side profile toward screen. Golden thin line expanded into ANCIENT EYE SYMBOL radiating golden light. Below, golden text appearing letter by letter: "检测到根因级灾难" "检测到唯一适配者：过客". 28-year-old programmer side profile (square jawline, dark circles, messy hair, M-shaped hairline) lit by golden text glow — bewilderment to shock. ID badge "过客" catches golden light. Photorealistic CGI, dark tech-noir, golden vs dark contrast, cinematic lighting --cref [URL] --cw 80 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<h3>尾帧 <span class="tag tag-last">LAST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header"><span>通用提示词</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression.
+
+Vertical 9:16 cinematic extreme close-up. The screen now shows the full golden ancient eye icon, with complete text: "检测到根因级灾难。检测到唯一适配者：过客。" Below, a new line appears: "是否启动——大圣协议？" with a glowing GOLDEN CONFIRM BUTTON beneath it. The 28-year-old programmer (square jawline, dark circles, messy black hair, charcoal-gray hoodie, ID badge "过客 ByteFly BF-1024") is visible in foreground, his face illuminated by golden glow. His index finger hovers ABOVE the confirm button, trembling slightly, not yet pressed. Expression torn between fear and determination. Golden light and deep shadow interplay on his face. Distant war drums growing. Photorealistic CGI, dark tech-noir, golden vs dark, cinematic lighting, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Midjourney 专用</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16 extreme close-up. Screen shows golden ancient eye icon, text: "检测到根因级灾难。检测到唯一适配者：过客。" Below: "是否启动——大圣协议？" with glowing GOLDEN CONFIRM BUTTON. 28-year-old programmer (square jawline, dark circles, messy hair, hoodie, ID badge "过客") in foreground, face golden-lit. Index finger hovers ABOVE confirm button, trembling, not pressed. Expression torn between fear and determination. Golden vs shadow interplay. Distant war drums. Photorealistic CGI, dark tech-noir, cinematic lighting --cref [URL] --cw 80 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<hr>
+
+<!-- ========== 镜头14 ========== -->
+<h2>镜头14 ｜ 主动选择</h2>
+<div class="scene-desc">
+  <b>场景：</b>过客正面，半身<br>
+  <b>景别：</b>半身近景，正面微仰拍<br>
+  <b>画面：</b>三魔暗影在身后如审判者，过客坚定按下确认
+</div>
+
+<div class="ref-upload"><b>📸 上传参考图（GPT-Image-2）：</b><code>过客_角色参考图_标准版.jpg</code></div>
+
+<h3>首帧 <span class="tag tag-first">FIRST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header"><span>通用提示词</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression.
+
+Vertical 9:16 cinematic half-body shot, front-facing, slight low angle. The 28-year-old programmer (square jawline, gaunt, dark circles, messy black hair, charcoal-gray hoodie, white t-shirt, ID badge "过客 ByteFly BF-1024") stands before the screen. Behind/above him, the shadowy overlapped forms of three Bug demons loom like judges — Black Hole King silhouette, Loop Demon clones, Permission Phantom smoke. The programmer's head is down, eyes shadowed, finger hovering over the golden confirm button on screen. The room is filled with overlapping warning windows. Tension between golden button light and dark demon shadows. Hesitation, weighing the unknown. Photorealistic CGI, dark tech-noir, cinematic lighting, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Midjourney 专用</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16 half-body, front-facing, slight low angle. 28-year-old programmer (square jawline, dark circles, messy hair, charcoal-gray hoodie, ID badge "过客") before screen. Behind/above: shadowy overlapped forms of three Bug demons like judges. Head down, eyes shadowed, finger hovering over golden confirm button. Room filled with overlapping warning windows. Tension between golden light and dark demon shadows. Hesitation. Photorealistic CGI, dark tech-noir, cinematic lighting --cref [URL] --cw 80 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<h3>尾帧 <span class="tag tag-last">LAST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header"><span>通用提示词</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression.
+
+Vertical 9:16 cinematic half-body shot, front-facing, slight low angle. The 28-year-old programmer (same face, hoodie, ID badge "过客 ByteFly BF-1024") has LIFTED his eyes — gaze now burning with fierce determination. His finger has PRESSED DOWN firmly on the golden confirm button. At the moment of contact, ALL sound has stopped — visual absolute SILENCE. The three demon shadows behind have frozen. Golden light is beginning to spread from the button contact point, crawling up the programmer's finger. His expression is resolute, jaw set. The transition from darkness to golden has begun. Photorealistic CGI, dark tech-noir transitioning to golden awakening, cinematic lighting, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Midjourney 专用</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16 half-body, front-facing, slight low angle. 28-year-old programmer (square jawline, dark circles, messy hair, charcoal-gray hoodie, ID badge "过客") LIFTED eyes — burning determination. Finger PRESSED DOWN firmly on golden confirm button. ALL sound stopped — visual SILENCE. Three demon shadows frozen behind. Golden light spreading from button contact up his finger. Expression resolute, jaw set. Transition from darkness to golden begun. Photorealistic CGI, dark tech-noir to golden awakening, cinematic lighting --cref [URL] --cw 80 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<hr>
+
+<!-- ========== 镜头15 ========== -->
+<h2>镜头15 ｜ 大圣协议觉醒卡点</h2>
+<div class="scene-desc">
+  <b>场景：</b>过客为中心向后拉远<br>
+  <b>景别：</b>极大全景 → 金色强光<br>
+  <b>画面：</b>金色代码沿手臂攀升，工牌保留，办公室碎裂，金色手掌握住金箍棒
+</div>
+
+<div class="ref-upload">
+  <b>📸 上传参考图（GPT-Image-2，按顺序上传）：</b><br>
+  图1: <code>过客_角色参考图_标准版.jpg</code> → 普通形态（锁定面部）<br>
+  图2: <code>过客_大圣协议形态_参考图.jpg</code> → 金甲形态（锁定盔甲+金箍棒+工牌位置）<br>
+  <b>📋 参考图分配已整合在下方提示词内</b>
+</div>
+
+<h3>首帧 <span class="tag tag-first">FIRST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header"><span>通用提示词</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression. REFERENCE IMAGE ASSIGNMENT: Image 1 = the programmer in normal form (face, hair, hoodie). Image 2 = the programmer in golden armor form (armor, staff, badge position).
+
+Vertical 9:16 cinematic wide shot. The 28-year-old programmer (same face: square jawline, dark circles, messy black hair, M-shaped hairline) stands at the center. Golden code is rapidly climbing from his fingers up along his arms, spreading across his body. The dark charcoal-gray hoodie is BEGINNING to transform — patches of dark gunmetal-gray tech armor (Chinese mountain-scale armor × cyberpunk exoskeleton) are materializing, with golden circuit patterns glowing between the plates. CRITICAL: his employee ID badge "过客 ByteFly BF-1024" remains clearly visible, NOT covered by the armor. His eyes are in mid-transformation — one eye turning golden, one still brown. The office walls behind him are starting to crack and fragment into golden code particles. Golden light building from within. Photorealistic CGI, dark-to-golden transition, cinematic lighting, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Midjourney 专用</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16 wide shot. 28-year-old programmer (square jawline, dark circles, messy hair) center. Golden code climbing from fingers up arms, spreading across body. Hoodie BEGINNING to transform — dark gunmetal tech armor (Chinese mountain-scale × cyberpunk) materializing, golden circuit patterns between plates. ID badge "过客 ByteFly BF-1024" remains visible NOT covered. Eyes mid-transformation — one golden, one brown. Office walls cracking into golden code particles. Golden light building. Photorealistic CGI, dark-to-golden transition, cinematic lighting --cref [URL] --cw 80 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<h3>尾帧 <span class="tag tag-last">LAST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header"><span>通用提示词</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression. REFERENCE IMAGE ASSIGNMENT: Image 1 = the programmer in normal form (face, hair, hoodie). Image 2 = the programmer in golden armor form (armor, staff, badge position).
+
+Vertical 9:16 cinematic extreme wide shot. The programmer has FULLY TRANSFORMED into golden-armored form — wearing dark gunmetal Chinese mountain-scale tech armor with golden circuit patterns, both eyes now glowing golden. His ID badge "过客 ByteFly BF-1024" still hangs on his chest, preserved amid the armor. The entire office, servers, and city behind him have SHATTERED into a golden CODE GALAXY — fragments of reality floating and rotating like stars. A golden-gloved hand reaches out from center frame, grasping a CODE STAFF — a black metal long staff with golden decorations at both ends, the word "REFACTOR" glowing in golden text along the shaft. Intense golden light erupts from the center outward. Epic, transcendent awakening moment. War drum impact. Photorealistic CGI, golden awakening epic, cinematic lighting, high detail, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Midjourney 专用</span><button class="copy-btn" onclick="copyPrompt(this)">复制</button></div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16 extreme wide shot. Programmer FULLY TRANSFORMED — dark gunmetal Chinese mountain-scale tech armor, golden circuit patterns, both eyes glowing golden. ID badge "过客 ByteFly BF-1024" on chest preserved. Office, servers, city SHATTERED into golden CODE GALAXY — reality fragments floating like stars. Golden-gloved hand grasps CODE STAFF — black metal staff, golden ends, "REFACTOR" in golden text along shaft. Intense golden light erupts outward. Epic transcendent awakening. Photorealistic CGI, golden awakening epic, cinematic lighting, high detail --cref [URL] --cw 80 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<hr>
+
+<div class="ref-note">
+  <b>第1集首尾帧提示词完整，共15个镜头×2帧 = 30条提示词</b><br><br>
+  <b>镜头1-4：</b>见 <code>分镜提示词_镜头1-4.html</code><br>
+  <b>镜头5-15：</b>本文件<br><br>
+  <b>制作流程：</b><br>
+  1. 在GPT-Image-2上传"过客_角色参考图_标准版.jpg"<br>
+  2. 复制首帧通用提示词 → 生成首帧图 → webp链接转JPG<br>
+  3. 复制尾帧通用提示词 → 生成尾帧图 → webp链接转JPG<br>
+  4. 首尾帧图上传可灵 → 复制视频过渡提示词 → 生成5秒视频<br>
+  5. 15个视频片段拼接 → 完成2分钟第1集
+</div>
+
+<script>
+function copyPrompt(btn) {
+  const body = btn.closest('.prompt-box').querySelector('.prompt-body');
+  const text = body.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '已复制!';
+    setTimeout(() => btn.textContent = '复制', 2000);
+  });
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,228 @@
+# 短剧生产工作台
+
+把「确认提示词 → 调生图 → 确认图片 → 带参考图出片 → 尾帧回流下一镜」这条链路从手工搬运变成点按钮。
+
+**通用**是硬要求：不写死任何平台、角色名、文件名。下部剧从 0 也能用同一套。
+
+素材不搬家——`.md` 文档和素材目录仍是唯一真相源，工作台只做索引和写回。
+
+---
+
+## 启动
+
+两个进程，各开一个终端。
+
+**后端**（FastAPI + SQLite，端口 8770）
+
+```bash
+cd D:\Aicomfyui\短剧工作台\backend
+C:\Users\Administrator\.workbuddy\binaries\python\envs\default\Scripts\python.exe run.py
+```
+
+**前端**（Vite，端口 5180，`/api` 已代理到 8770）
+
+```bash
+cd D:\Aicomfyui\短剧工作台\frontend
+npm run dev
+```
+
+打开 http://127.0.0.1:5180
+
+> 只跑后端也行：`frontend/dist` 存在时后端会直接托管它，访问 http://127.0.0.1:8770
+
+### 首次/重建数据
+
+```bash
+cd backend
+python scripts/bootstrap.py            # 增量导入
+python scripts/bootstrap.py --rebuild  # 清空镜头后全量重导
+```
+
+扫描 `deepseek分镜\` 下的 `第N集_中文视频提示词_核对版.md` + `第N集_分镜图提示词_GPT-Img2.md`，自动建项目、镜头、资产、参考图槽位、台词。
+
+---
+
+## 第一次用要做什么
+
+1. 打开 **接口与设置**，填两个供应商的 `base_url` 和密钥，然后把「启用」打开。
+   - 生图：GPT-Image 类，OpenAI 兼容
+   - 视频：旧平台 MiniMax H3（¥0.04/秒，768P）
+   - 密钥可以写成 `${ENV:变量名}`，这样密钥不落库。
+2. 请求体模板（Jinja2）按你的中转站字段改。带参考图的生图通常要换 `/images/edits` 并传 `image` 数组——模板里已注明。
+3. 改完先用镜头页的 **预览请求体**（dry-run）确认加工出来的请求对不对，再点生成。
+
+dry-run 故意不拦「未启用」的供应商——它就是为了在配好之前先看请求长什么样。
+
+---
+
+## 页面
+
+| 页面 | 干什么 |
+|---|---|
+| 项目列表 | 建项目、扫描并导入某项目的分镜文档；行内「剧本」按钮进入剧本页 |
+| **剧本** | 写剧本（调 DeepSeek）、版本历史、AI 智能分集、集数管理 |
+| 镜头看板 | 全部镜头一屏，筛未就绪/未确认/缺素材 |
+| **镜头详情** | 工作台核心：左分镜图 / 中视频 / 右音频与校验，两个闸门都在这 |
+| 资产库 | 角色、场景、道具及其参考图，谁被哪些镜头引用 |
+| 提示词中心 | 模板、片段、版本历史、Lint 规则开关 |
+| 创作流水线 | 灵感 → 剧本拆解 → 套模板出初稿 |
+| 时间轴与合成 | 按镜序拼片、转码、导出 |
+| 任务中心 | 所有生成任务的状态、取消、重试、日志 |
+| 健康报告 | 全局数据问题清单 |
+
+### 镜头详情页的两个闸门
+
+1. **出图确认**：提示词改完 → 生成分镜图 → 从候选里挑一张采纳（写回 `0NNN.jpg`）
+2. **出片确认**：确认文案/参考图槽位/时长 → 生成视频 → 采纳成 `final_video_path`
+
+采纳时才动素材目录，之前都只在工作台里预览。
+
+### 字号档位
+
+顶栏右上角「Aa」可整站切换字号，选完自动记住（localStorage）。
+
+| 档位 | 正文 | 表格 | 侧栏宽 |
+|---|---|---|---|
+| 紧凑 | 13px | 12px | 202px |
+| 标准 | 15px | 13.5px | 220px |
+| **大（默认）** | **16.5px** | **15px** | 236px |
+| 特大 | 18px | 16px | 256px |
+
+字号全部收敛在 `frontend/src/styles.css` 顶部的 `--fs-*` 变量（外加 `--ui-*` 联动尺寸：侧栏宽、顶栏高、控件高、缩略图宽）。Element Plus 的 `--el-font-size-*` 与 `--el-component-size-*` 也指向这套变量，所以 182 处 `size="small"` 的控件会一起变。
+
+想再整体调，只改 `:root` 里那一组值即可，四个档位照抄改数字。
+
+> 踩过的坑：EP 的 `--el-font-size-extra-small` 被 `.el-table--small` 使用，一开始把它指向「角标档」，结果正文变大了表格却纹丝不动。它必须指向「次要文本档」。
+
+### 操作列永远排一行
+
+字号放大后，表格「操作」列的多个按钮会被挤到第二行，把行高撑成两倍、表也变毛。所以：
+
+- 每处操作列内容都包在 `.op-row` 里（`frontend/src/styles.css`），它是 `flex-wrap: nowrap`，并收紧了按钮内边距（`0 8px`）与相互间距（`2px`）。
+- 各表操作列的 `width` 按「特大档也不挤」留足余量，改列宽时注意别改回窄值。
+- `node tools/probe_oprow.cjs` 会在 4 档字号下逐页量每个操作列的真实宽度与行数，任何一处换行/溢出都会报出来。
+
+> 踩过的坑：给操作列包 `.op-row` 时如果是脚本批量改，要当心把 `v-if` / `v-else` 拆到两个元素上（例如「系统设置」列是 `v-if=editing` 两个按钮与 `v-else` 一个按钮）。包错会让 Vite 编译 500、整个页面白屏，而浏览器控制台只报一句 `Failed to fetch dynamically imported module` —— 看不出是哪个模板写坏了，得靠 `tools/_diag_pages.cjs` 这类逐页诊断脚本抓 500 的 URL。
+
+---
+
+## 核心机制
+
+### 双轨状态，不混用
+
+- `shots.readiness`（draft / pending_confirm / ready）——**静态**就绪度，只由素材齐不齐决定，有个人工确认闸门。
+- `generation_tasks.status`（pending / running / succeeded / failed）——**动态**任务态。
+
+**不要把「生成中」写进镜头状态。** 这是踩过坑才定下来的：镜头状态被任务态污染后，看板就没法回答「哪些镜头可以开工」了。
+
+### 接口全配置化
+
+换平台只改配置，不动代码：
+
+- `providers`：`base_url` / `image_base_url` / `video_base_url`、密钥引用、并发、超时、重试、代理
+- `models`：请求体（Jinja2 模板）+ 响应取值（JSONPath）+ 轮询配置 + 同步/异步双模式
+
+### 参考图槽位自动派生
+
+镜头勾选「出场资产」，参考图槽位和提示词里的「参考图N / Image N」按顺序自动派生。镜头里不出现角色名和文件名，只出现引用——这是「不写死」的关键。
+
+`Image N` 与参数 `ref_image_(N-1)` 是同一张图（约定：Image 1 = ref_image_0）。
+
+### 三个自动化钩子
+
+1. **尾帧回流**：视频出片成功后 ffmpeg 抽尾帧 → 登记本镜 last 帧 → 自动回填下一镜 `ref_image_0`
+2. **音频精测**：音频素材挂到镜头后 mutagen 实测时长 → 校验 `视频时长 ≥ 音频时长 + 偏移`
+   - 音频**不由工作台生成**：在外部做好后，镜头页用「选择音频文件」挂上，出片时作为 `ref_audio_N` 交给视频模型
+3. **生成前校验**：引用文件存在性检查（容错缺后缀、前缀匹配）
+
+### 提示词 Lint
+
+跨镜交代词、缺防转场句、台词未加粗、白模 mp4 进 API、时长不足、主体越界、幽灵引用、内部代号、声明与参数不一致、占位引用。规则可在提示词中心逐条开关。
+
+### 项目隔离（不可能串项目）
+
+一个工作台里会有多部剧。隔离规则：
+
+| 数据 | 归属 | 隔离方式 |
+|---|---|---|
+| 资产（角色/场景/道具） | 挂 `project_id` | 列表接口 `WHERE project_id=?`，只出本项目的 |
+| 集 / 镜头 / 明细 / 台词 / 尾帧 | 挂在集→项目下 | 只能从项目的集列表进入 |
+| 健康问题 / 提示词模板 / 片段 / Lint 规则 | 挂 `project_id` | 按项目查 |
+| 供应商 / 模型 / 密钥 | **全局** | 多部剧共用同一套接口配置，改一次全生效 |
+| 任务中心 | **跨项目** | 默认看全部，可按项目筛选，列表带「项目」列 |
+
+**跨项目引用被接口层拦住**：`POST /shots/{id}/refs` 挂资产时会核对「镜头所属项目 == 资产所属项目」，不一致直接 400：
+
+```
+资产「XX」属于其他项目（#3），不能挂到本项目镜头里
+```
+
+所以 A 剧的角色永远不会出现在 B 剧镜头的参考图槽位里。
+
+同一份素材文件（比如一张通用「手机」图）要给两部剧用 → 两个项目各建一条资产记录、指向同一个文件。名字和锁定句可以各自不同，互不影响。
+
+---
+
+## 目录
+
+```
+短剧工作台\
+  backend\
+    app\
+      core\       db.py schema.sql
+      parsers\    md_common / md_video_parser / md_storyboard_parser / importer
+      services\   file_store / seed / shot_service / lint_service / hooks_service / naming
+      executors\  provider_engine / task_runner
+      routers\    projects shots assets prompts tasks config media creation timeline
+    scripts\      bootstrap.py（导入）、_audit.py（数据体检）、_parse_check.py（解析自检）、_e2e_tail.py（回流演练）
+  frontend\       src\views src\components
+  tools\          ui_tour.cjs（真实浏览器跑一遍全部页面的巡检脚本）
+  data\           studio.db（SQLite）
+  storage\        outputs / keyframes / audio / thumbs / uploads / ui-tour
+```
+
+数据落在**项目根**的 `data\` 和 `storage\`，不放 `backend\` 下——备份整个项目目录就是备份全部。
+
+---
+
+## 巡检与自检
+
+```bash
+# 数据体检：提示词完整度、参考图槽位、健康问题分布
+cd backend && python scripts/_audit.py
+
+# 解析自检：三个文档解析出来的镜头数、提示词字数、参考图数
+python scripts/_parse_check.py
+
+# 页面巡检：真实浏览器跑 11 个路由，抓 console 错误/异常/4xx，出截图
+cd .. && node tools/ui_tour.cjs
+
+# 单页排查：打印该页发出的每个请求及其响应片段，分三个时间点看表格行数
+node tools/probe_board.cjs http://127.0.0.1:5180 "#/p/1/board"
+
+# 跨项目隔离测试：临时建两个项目验证「跨项目引用被拒」，跑完自动清理，不碰真实数据
+python scripts/_test_isolation.py
+
+# 字号档位探测：4 个档位下的真实字号/行高/一屏行数/横向溢出，并实测顶栏切档与持久化
+node tools/probe_font.cjs
+
+# 操作列巡检：4 档字号 × 全站表格，逐处量「操作」列按钮是否单行、有没有溢出
+node tools/probe_oprow.cjs
+```
+
+`ui_tour.cjs` 用系统 Chrome（`C:\Program Files\Google\Chrome\Application\chrome.exe`）。本机 `ms-playwright` 里的 chromium 会报 `0xC000007B` 跑不起来，所以脚本里是显式指定系统浏览器的。
+
+页面数据是异步分批来的（镜头看板要等 projects→episodes→health→shots→N 个缩略图），巡检用的是「等网络静默 + 900ms 兜底」，不要改回固定短延时——固定 1.8s 时看板会还是空表，被误判成"0 镜"。
+
+---
+
+## 已知的数据缺口（不是代码问题）
+
+导入时如实记录，可在健康报告里看到：
+
+- **80 个镜头没写防转场句**（第2、3集还是早期格式，未重制）
+- **11 个镜头缺首帧分镜图**（分镜图还没生成）
+- **80 个镜头没有接口首行声明**（第2、3集未重制到新格式）
+- 资产「手机」「终极Bug王」没有参考图
+
+第1集 34 个镜头的提示词、参考图、硬约束、时序拍点已全部解析到位。

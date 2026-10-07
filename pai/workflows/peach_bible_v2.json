@@ -1,0 +1,13 @@
+{
+  "1": {"class_type": "UnetLoaderGGUF", "inputs": {"unet_name": "qwen-image-edit-2511-Q4_K_M.gguf"}},
+  "2": {"class_type": "CLIPLoaderGGUF", "inputs": {"clip_name": "Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf", "type": "qwen_image"}},
+  "3": {"class_type": "VAELoader", "inputs": {"vae_name": "qwen_image_vae.safetensors"}},
+  "4": {"class_type": "ModelSamplingAuraFlow", "inputs": {"model": ["1", 0], "shift": 1.73}},
+  "7": {"class_type": "LoadImage", "inputs": {"image": "peach_role_v6.png"}},
+  "5": {"class_type": "TextEncodeQwenImageEditPlus", "inputs": {"clip": ["2", 0], "vae": ["3", 0], "image1": ["7", 0], "prompt": "Side profile view of the SAME cute 3D chibi Pixar peach character from the reference image: the same round chubby body, big sparkling eyes in profile, pink blush cheek, tiny leaf on top, soft warm lighting and clean light-gray background, facing left, full-body side view, standing. Keep the exact same art style, material and rendering quality. 8k uhd, masterpiece, best quality, sharp focus, highly detailed 3D render, crisp clean edges."}},
+  "6": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["2", 0], "text": "low quality, blurry, deformed, extra limbs, bad anatomy, watermark, text, extra faces"}},
+  "8": {"class_type": "VAEEncode", "inputs": {"pixels": ["7", 0], "vae": ["3", 0]}},
+  "9": {"class_type": "KSampler", "inputs": {"model": ["4", 0], "positive": ["5", 0], "negative": ["6", 0], "latent_image": ["8", 0], "seed": 12345, "steps": 35, "cfg": 7.5, "sampler_name": "dpmpp_2m", "scheduler": "karras", "denoise": 0.65}},
+  "10": {"class_type": "VAEDecode", "inputs": {"samples": ["9", 0], "vae": ["3", 0]}},
+  "11": {"class_type": "SaveImage", "inputs": {"images": ["10", 0], "filename_prefix": "bible_side"}}
+}

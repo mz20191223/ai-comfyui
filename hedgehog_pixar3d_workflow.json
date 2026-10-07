@@ -1,0 +1,65 @@
+{
+  "1": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": { "ckpt_name": "moDi-v1-pruned.ckpt" },
+    "_meta": { "title": "Load Checkpoint (mo-di)" }
+  },
+  "8": {
+    "class_type": "LoraLoader",
+    "inputs": {
+      "lora_name": "pixar_3d.safetensors",
+      "strength_model": 0.5,
+      "strength_clip": 0.7,
+      "model": ["1", 0],
+      "clip": ["1", 1]
+    },
+    "_meta": { "title": "Load LoRA (3D Redmond, 低强度)" }
+  },
+  "2": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "modern disney style, pixar style 3d render, masterpiece, best quality, a cute small baby hedgehog, round plump body, soft short quills on back, tiny legs, small rounded ears, very large glossy expressive eyes, button nose, cheerful friendly smile, smooth clay-like fur texture, subsurface scattering skin, solid pastel light blue clean background, centered full body shot, chibi proportions, soft three-point studio lighting, octane render, 8k uhd",
+      "clip": ["8", 1]
+    },
+    "_meta": { "title": "正提示词" }
+  },
+  "3": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "realistic, photo, photography, nature, forest, grass, lowres, bad anatomy, extra limbs, extra animals, deformed, blurry, watermark, text, signature, dark, scary, person, human, duplicate, merged, overlapping, messy, rabbit ears, long ears, flat illustration, 2d, sketch, drawing",
+      "clip": ["8", 1]
+    },
+    "_meta": { "title": "负提示词" }
+  },
+  "4": {
+    "class_type": "EmptyLatentImage",
+    "inputs": { "width": 512, "height": 768, "batch_size": 1 },
+    "_meta": { "title": "空Latent图像 (512x768)" }
+  },
+  "5": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 987654321,
+      "steps": 35,
+      "cfg": 7,
+      "sampler_name": "euler_ancestral",
+      "scheduler": "karras",
+      "denoise": 1.0,
+      "model": ["8", 0],
+      "positive": ["2", 0],
+      "negative": ["3", 0],
+      "latent_image": ["4", 0]
+    },
+    "_meta": { "title": "KSampler" }
+  },
+  "6": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["5", 0], "vae": ["1", 2] },
+    "_meta": { "title": "VAE Decode" }
+  },
+  "7": {
+    "class_type": "SaveImage",
+    "inputs": { "images": ["6", 0] },
+    "_meta": { "title": "保存图像" }
+  }
+}

@@ -1,0 +1,63 @@
+# ===== 大文件/可再生物（绝不进 git） =====
+models/
+Aicomfyui.rar
+__pycache__/
+custom_nodes/
+*.tmp
+
+# ComfyUI 临时渲染图（保留 C1 九宫格 + C2 视频）
+c1_output/*temp*
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# ===== 媒体类/权重/密钥目录（绝不进 git，2026-10-07） =====
+# 视频/压缩包/模型权重：单文件超 GitHub 100MB 硬上限，且可再生成，不入库
+*.mp4
+*.zip
+*.rar
+*.tar.gz
+*.safetensors
+*.ckpt
+*.pt
+视频片段/
+重制版/分镜视频/
+重制版/分镜图/视频尾帧/
+# WorkBuddy 会话记忆(含密钥)，项目每日记录改用 项目记忆与日志/ 入库
+.workbuddy/
+
+# ===== 依赖/构建产物（绝不进 git，可在他机重新生成） =====
+node_modules/
+dist/
+.output/
+.vite/
+build/
+__pycache__/
+*.log
+npm-debug.log*
+
+# ===== 下载镜像 / 测试缓存（可再生） =====
+cloud/_*/
+clips/
+c1_output/
+grid/
+
+# ===== 运行时生成数据（非源码，不入库） =====
+短剧工作台/data/
+短剧工作台/storage/
+data/
+*.db
+
+# ===== 媒体文件（AI 产物，可由提示词重新生成，不入库以保证小体积克隆）=====
+# 注：保留 *.webp / *.svg / *.ico —— 前端 public/shot-diagrams 的 webp 是构建所需 UI 资源
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.mp3
+*.wav
+*.m4a
+# 内嵌 base64 图片的生成预览（属媒体，可重新生成）
+*preview*.html

@@ -1,0 +1,210 @@
+import axios from 'axios'
+import { ElMessage } from 'element-plus'
+
+const http = axios.create({ baseURL: '/api', timeout: 120000 })
+
+http.interceptors.response.use(
+  (r) => r.data,
+  (err) => {
+    const detail = err?.response?.data?.detail || err.message || '请求失败'
+    ElMessage.error(typeof detail === 'string' ? detail : JSON.stringify(detail).slice(0, 200))
+    return Promise.reject(err)
+  },
+)
+
+export const api = {
+  // 项目 / 集
+  projects: () => http.get('/projects'),
+  project: (id) => http.get(`/projects/${id}`),
+  createProject: (data) => http.post('/projects', data),
+  patchProject: (id, data) => http.patch(`/projects/${id}`, data),
+  deleteProject: (id) => http.delete(`/projects/${id}`),
+  episodes: (pid) => http.get(`/projects/${pid}/episodes`),
+  createEpisode: (pid, data) => http.post(`/projects/${pid}/episodes`, data),
+  patchEpisode: (id, data) => http.patch(`/episodes/${id}`, data),
+  episode: (id) => http.get(`/episodes/${id}`),
+  discover: (pid) => http.get(`/projects/${pid}/discover`),
+  importDocs: (pid, data) => http.post(`/projects/${pid}/import`, data),
+  rescan: (pid) => http.post(`/projects/${pid}/rescan`),
+  health: (pid, resolved = 0) => http.get(`/projects/${pid}/health`, { params: { resolved } }),
+  resolveIssue: (id) => http.post(`/health/${id}/resolve`),
+
+  // 镜头
+  shots: (eid) => http.get(`/episodes/${eid}/shots`),
+  shot: (id) => http.get(`/shots/${id}`),
+  patchShot: (id, data) => http.patch(`/shots/${id}`, data),
+  createShot: (eid, data) => http.post(`/episodes/${eid}/shots`, data),
+  deleteShot: (id) => http.delete(`/shots/${id}`),
+  reorderShots: (eid, shotIds) => http.post(`/episodes/${eid}/shots/reorder`, { shot_ids: shotIds }),
+  cameraOptions: () => http.get('/meta/camera-options'),
+  suggestTail: (id) => http.get(`/shots/${id}/suggest-tail`),
+
+  // 镜头设置向导：预览要注入的句子 / 写入并注入提示词
+  wizardNote: (sid, params) => http.get(`/shots/${sid}/wizard-note`, { params }),
+  applyWizard: (sid, data) => http.post(`/shots/${sid}/apply-wizard`, data),
+
+  // 候选
+
+  // 参考图槽位
+  upsertRef: (sid, data) => http.post(`/shots/${sid}/refs`, data),
+  deleteRef: (sid, linkId) => http.delete(`/shots/${sid}/refs/${linkId}`),
+  reorderRefs: (sid, side, ids) => http.post(`/shots/${sid}/refs/reorder`, { target_side: side, link_ids: ids }),
+
+  // 音频素材（外部做好后挂上来，作为 ref_audio_0 出片）
+  setShotAudio: (sid, data) => http.post(`/shots/${sid}/audio`, data),
+  // 一个镜头可挂多段音频（分句台词各挂一段）；给 lineId 只摘那一行，不给则摘整镜
+  clearShotAudio: (sid, lineId) =>
+    http.delete(`/shots/${sid}/audio`, { params: lineId ? { line_id: lineId } : {} }),
+
+  // 首帧锚点：取上一镜尾帧（触发权在本镜，不用跳回上一镜）
+  prevTailCandidates: (sid) => http.get(`/shots/${sid}/prev-tail-candidates`),
+  usePrevTail: (sid, data) => http.post(`/shots/${sid}/use-prev-tail`, data),
+  // 首帧锚点：按「来源镜头」挑尾帧；成片没抽过就现抽
+  tailSources: (sid) => http.get(`/shots/${sid}/tail-sources`),
+  extractTailFrom: (sid, data) => http.post(`/shots/${sid}/extract-tail-from`, data),
+  // 首帧锚点：自己上传一张图（存在不依赖生成，来源不限于上一镜尾帧）
+  uploadFirstFrame: (sid, formData) => http.post(`/shots/${sid}/first-frame/upload`, formData),
+
+  // 产物 / 校验
+  adoptImage: (sid, data) => http.post(`/shots/${sid}/adopt-image`, data),
+  setKeyframe: (sid, path) => http.post(`/shots/${sid}/set-keyframe`, { path }),
+  keyframeCandidates: (sid) => http.get(`/shots/${sid}/keyframe-candidates`),
+  replaceKeyframe: (sid, formData) => http.post(`/shots/${sid}/replace-keyframe`, formData),
+  // 归档：把暂存区里的产物移进项目「分镜视频」，同时定为本镜成片
+  acceptOutput: (sid, path) => http.post(`/shots/${sid}/accept-output`, { path }),
+  discardOutput: (sid, path) => http.post(`/shots/${sid}/discard-output`, { path }),
+  extractTail: (sid, data) => http.post(`/shots/${sid}/extract-tail`, data || {}),
+  audit: (sid) => http.post(`/shots/${sid}/audit`),
+  lintShot: (sid, stage = 'video') => http.post(`/shots/${sid}/lint`, null, { params: { stage } }),
+  generate: (sid, data) => http.post(`/shots/${sid}/generate`, data),
+  dryRun: (sid, data) => http.post(`/shots/${sid}/dry-run`, data),
+
+  // 资产
+  assets: (pid, type) => http.get(`/projects/${pid}/assets`, { params: { asset_type: type } }),
+  asset: (id) => http.get(`/assets/${id}`),
+  createAsset: (pid, data) => http.post(`/projects/${pid}/assets`, data),
+  patchAsset: (id, data) => http.patch(`/assets/${id}`, data),
+  deleteAsset: (id) => http.delete(`/assets/${id}`),
+  addAssetImage: (id, data) => http.post(`/assets/${id}/images`, data),
+  uploadAssetImage: (id, formData) => http.post(`/assets/${id}/upload-image`, formData),
+  deleteAssetImage: (id, iid) => http.delete(`/assets/${id}/images/${iid}`),
+  scanAssets: (pid, dirs) => http.post(`/projects/${pid}/assets/scan`, { dirs }),
+  assetCoverage: (pid) => http.get(`/projects/${pid}/asset-coverage`),
+
+  // 提示词
+  templates: (pid, category) => http.get('/templates', { params: { project_id: pid, category } }),
+  templateCategories: () => http.get('/template-categories'),
+  createTemplate: (data) => http.post('/templates', data),
+  patchTemplate: (id, data) => http.patch(`/templates/${id}`, data),
+  deleteTemplate: (id) => http.delete(`/templates/${id}`),
+  duplicateTemplate: (id) => http.post(`/templates/${id}/duplicate`),
+  renderTemplate: (id, variables) => http.post(`/templates/${id}/render`, { variables }),
+  snippets: (pid) => http.get('/snippets', { params: { project_id: pid } }),
+  createSnippet: (data) => http.post('/snippets', data),
+  patchSnippet: (id, data) => http.patch(`/snippets/${id}`, data),
+  deleteSnippet: (id) => http.delete(`/snippets/${id}`),
+  revisions: (kind, id) => http.get('/revisions', { params: { target_kind: kind, target_id: id } }),
+  revision: (id) => http.get(`/revisions/${id}`),
+  restoreRevision: (id) => http.post(`/revisions/${id}/restore`),
+  lintRules: (pid) => http.get('/lint-rules', { params: { project_id: pid } }),
+  patchLintRule: (id, data) => http.patch(`/lint-rules/${id}`, data),
+  lintCheckers: () => http.get('/lint-checkers'),
+
+  // 任务
+  tasks: (params) => http.get('/tasks', { params }),
+  task: (id) => http.get(`/tasks/${id}`),
+  taskStats: () => http.get('/tasks/stats'),
+  cancelTask: (id, reason) => http.post(`/tasks/${id}/cancel`, { reason }),
+  retryTask: (id) => http.post(`/tasks/${id}/retry`),
+  deleteTask: (id) => http.delete(`/tasks/${id}`),
+  clearFinished: () => http.post('/tasks/clear-finished', {}),
+
+  // 配置
+  providers: () => http.get('/providers'),
+  createProvider: (data) => http.post('/providers', data),
+  patchProvider: (id, data) => http.patch(`/providers/${id}`, data),
+  deleteProvider: (id) => http.delete(`/providers/${id}`),
+  testProvider: (id) => http.post(`/providers/${id}/test`),
+  models: (category) => http.get('/models', { params: { category } }),
+  model: (id) => http.get(`/models/${id}`),
+  createModel: (data) => http.post('/models', data),
+  patchModel: (id, data) => http.patch(`/models/${id}`, data),
+  deleteModel: (id) => http.delete(`/models/${id}`),
+  modelSettings: () => http.get('/model-settings'),
+  setModelSetting: (cat, modelId) => http.patch(`/model-settings/${cat}`, { model_id: modelId }),
+  settings: (cat) => http.get('/settings', { params: { category: cat } }),
+  setSettings: (items) => http.patch('/settings', { items }),
+  envKeys: () => http.get('/env-keys'),
+
+  // 密钥池（一个供应商多个账号，额度用尽自动轮到下一个）
+  credentials: (pid) => http.get(`/providers/${pid}/credentials`),
+  addCredential: (pid, data) => http.post(`/providers/${pid}/credentials`, data),
+  patchCredential: (id, data) => http.patch(`/credentials/${id}`, data),
+  deleteCredential: (id) => http.delete(`/credentials/${id}`),
+  probeCredential: (id) => http.post(`/credentials/${id}/probe`),
+  probeAllCredentials: (pid) => http.post(`/providers/${pid}/credentials/probe-all`),
+
+  // 成本预估（走平台免费预估端点，不产生生成、不扣额度）
+  estimate: (modelId, params) => http.post('/estimate', { model_id: modelId, params }),
+
+  // 媒体
+  browse: (dir, kind) => http.get('/media/browse', { params: { dir, kind } }),
+  searchMedia: (name, kind) => http.get('/media/search', { params: { name, kind } }),
+  mediaRoots: (pid) => http.get('/media/roots', { params: { project_id: pid } }),
+  mediaMeta: (path, pid) => http.get('/media/meta', { params: { path, project_id: pid } }),
+  classify: (path) => http.post('/media/classify', { path }),
+  mediaUpload: (formData, params) => http.post('/media/upload', formData, { params }),
+
+  // 创作层
+  // ---- 剧本（DeepSeek）----
+  scripts: (pid) => http.get(`/projects/${pid}/scripts`),
+  script: (id) => http.get(`/scripts/${id}`),
+  deleteScript: (id) => http.delete(`/scripts/${id}`),
+  generateScript: (pid, data) => http.post(`/projects/${pid}/scripts/generate`, data),
+  reviseScript: (pid, data) => http.post(`/projects/${pid}/scripts/revise`, data),
+  saveScript: (pid, data) => http.post(`/projects/${pid}/scripts/save`, data),
+  previewScript: (pid, data) => http.post(`/projects/${pid}/scripts/preview`, data),
+  // 智能分集
+  splitEpisodes: (pid, data) => http.post(`/projects/${pid}/scripts/split`, data),
+  parseEpisodes: (pid, data) => http.post(`/projects/${pid}/scripts/parse-episodes`, data),
+  applyEpisodes: (pid, data) => http.post(`/projects/${pid}/scripts/apply-episodes`, data),
+  // 集数管理：AI 续写
+  continueEpisode: (pid, data) => http.post(`/projects/${pid}/scripts/continue-episode`, data),
+  previewEpisode: (pid, data) => http.post(`/projects/${pid}/scripts/preview-episode`, data),
+  // 结构化出稿：一次产出「集结构 + 每集镜头清单」（不含提示词）
+  generateOutline: (pid, data) => http.post(`/projects/${pid}/scripts/outline`, data),
+  previewOutline: (pid, data) => http.post(`/projects/${pid}/scripts/outline/preview`, data),
+  applyOutline: (pid, data) => http.post(`/projects/${pid}/scripts/apply-outline`, data),
+  // 按集出双份提示词（分镜图 + 视频），素材声明由工作台自动拼
+  shotList: (eid) => http.get(`/episodes/${eid}/shot-list`),
+  genShotPrompts: (eid, data) => http.post(`/episodes/${eid}/shot-prompts`, data || {}),
+  previewShotPrompts: (eid, data) => http.post(`/episodes/${eid}/shot-prompts/preview`, data || {}),
+  applyShotPrompts: (eid, data) => http.post(`/episodes/${eid}/shot-prompts/apply`, data),
+
+  ideas: (pid) => http.get('/creation/ideas', { params: { project_id: pid } }),
+  createIdea: (data) => http.post('/creation/ideas', data),
+  patchIdea: (id, data) => http.patch(`/creation/ideas/${id}`, data),
+  deleteIdea: (id) => http.delete(`/creation/ideas/${id}`),
+  splitScript: (eid, data) => http.post(`/creation/episodes/${eid}/split`, data),
+  applyTemplate: (eid, data) => http.post(`/creation/episodes/${eid}/apply-template`, data),
+  pipeline: (pid) => http.get(`/creation/projects/${pid}/pipeline`),
+
+  // 合成（addClip/patchClip/deleteClip/reorderClips/normalize8bit 暂留：后端接口保留，页面已简化未用）
+  timeline: (eid) => http.get(`/episodes/${eid}/timeline`),
+  autoBuildTimeline: (eid, data) => http.post(`/episodes/${eid}/timeline/auto-build`, data || {}),
+  addClip: (eid, data) => http.post(`/episodes/${eid}/timeline/clips`, data),
+  patchClip: (cid, data) => http.patch(`/timeline/clips/${cid}`, data),
+  deleteClip: (cid) => http.delete(`/timeline/clips/${cid}`),
+  reorderClips: (eid, ids) => http.post(`/episodes/${eid}/timeline/reorder`, { clip_ids: ids }),
+  compose: (eid, data) => http.post(`/episodes/${eid}/compose`, data || {}),
+  composeCandidates: (eid) => http.get(`/episodes/${eid}/compose-candidates`),
+  normalize8bit: (path) => http.post('/timeline/normalize', { path }),
+}
+
+// 媒体地址（用于 img/video src）
+export const fileUrl = (path, thumb = 0) =>
+  path ? `/api/media/file?path=${encodeURIComponent(path)}` : ''
+export const thumbUrl = (path, size = 240) =>
+  path ? `/api/media/thumb?path=${encodeURIComponent(path)}&size=${size}` : ''
+
+export default http

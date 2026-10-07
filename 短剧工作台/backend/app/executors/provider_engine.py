@@ -1,0 +1,863 @@
+"""Provider 执行引擎。
+
+设计目标：**换平台 = 改配置，不改主程序**。
+- 请求体：Jinja2 模板（字段名随平台改）
+- 响应取值：JSONPath（多路径兼容，不假设字段名）
+- 交付模式：synchronous（一次拿结果）/ asynchronous（提交 → 轮询 → 下载）
+- 参考素材传输：url / base64 / auto（本地文件自动转 data URI）
+- 支持 dry-run（只渲染请求，不真发）便于对配置
+"""
+from __future__ import annotations
+
+import base64
+import json
+import mimetypes
+import time
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Callable
+
+import httpx
+from jinja2 import Template
+from jsonpath_ng.ext import parse as jp_parse
+
+from ..config import classify_ext
+from ..core import db
+from ..core.db import jloads
+
+
+class ProviderError(RuntimeError):
+    """带上下文的执行错误，方便前端展示。"""
+
+    def __init__(self, message: str, *, stage: str = "", detail: Any = None):
+        super().__init__(message)
+        self.stage = stage
+        self.detail = detail
+
+
+# ---------------- 配置装载 ----------------
+
+def load_model_bundle(model_id: int | None = None, category: str | None = None) -> dict:
+    """装载 model + provider 配置。给 category 则用 model_settings 的默认模型。"""
+    model = None
+    if model_id:
+        model = db.query_one("SELECT * FROM models WHERE id=?", (model_id,))
+    elif category:
+        ms = db.query_one("SELECT * FROM model_settings WHERE category=?", (category,))
+        if ms and ms["model_id"]:
+            model = db.query_one("SELECT * FROM models WHERE id=?", (ms["model_id"],))
+        if not model:
+            model = db.query_one(
+                "SELECT * FROM models WHERE category=? AND enabled=1 ORDER BY id LIMIT 1", (category,)
+            )
+    if not model:
+        raise ProviderError(f"未配置可用的{'默认' if category else ''}模型（category={category}, id={model_id}）", stage="config")
+    provider = db.query_one("SELECT * FROM providers WHERE id=?", (model["provider_id"],))
+    if not provider:
+        raise ProviderError(f"模型 {model['name']} 未绑定供应商", stage="config")
+    return {"model": model, "provider": provider}
+
+
+def resolve_api_key(provider: dict, credential: dict | None = None) -> str:
+    """解析 key：优先用密钥池里的指定账号，否则 ${ENV:XXX} 走环境变量，再退到 settings 表。"""
+    if credential:
+        return (credential.get("api_key") or "").strip()
+    ref = (provider.get("api_key_ref") or "").strip()
+    if not ref:
+        row = db.query_one("SELECT value FROM settings WHERE key=?", (f"provider_key:{provider['key']}",))
+        return (row["value"] if row else "") or ""
+    if ref.startswith("${ENV:") and ref.endswith("}"):
+        import os
+
+        env_name = ref[6:-1]
+        val = os.environ.get(env_name, "")
+        if not val:
+            row = db.query_one("SELECT value FROM settings WHERE key=?", (f"env:{env_name}",))
+            val = (row["value"] if row else "") or ""
+        return val
+    return ref
+
+
+# ---------------- 密钥池：多账号轮换 ----------------
+
+class QuotaExceeded(ProviderError):
+    """额度/鉴权类失败 —— 该做的是换账号，而不是重试同一个号。"""
+
+    def __init__(self, message: str, *, kind: str = "cooling", cooldown_sec: int = 120, detail: Any = None):
+        super().__init__(message, stage="quota", detail=detail)
+        self.kind = kind
+        self.cooldown_sec = cooldown_sec
+
+
+# 错误码 → 处置方式。HTTP 状态码与响应体 code 两套都兼容（不同平台口径不同）
+_QUOTA_HTTP = {
+    401: ("invalid", "鉴权失败（Key 无效）"),
+    402: ("exhausted", "额度/积分不足"),
+    403: ("invalid", "无权限（Key 被拒）"),
+    429: ("cooling", "请求过于频繁（限流）"),
+}
+_QUOTA_BODY_CODES = {
+    "26004": ("exhausted", "积分不足"),
+    "29998": ("cooling", "请求过于频繁"),
+    "21007": ("invalid", "API Key 无效"),
+}
+_QUOTA_KEYWORDS = (
+    "insufficient_quota", "insufficient balance", "insufficient credits", "quota exceeded",
+    "out of credits", "rate limit", "too many requests", "free_relax_busy", "free_relax_timeout",
+    "积分不足", "余额不足", "额度不足", "欠费",
+)
+_COOLDOWN_SEC = {"cooling": 90, "exhausted": 43200, "invalid": 0}
+
+
+def detect_quota(status_code: int, data: Any, text: str = "") -> tuple[str, str, int] | None:
+    """判断是否属于「换账号就能救」的失败。返回 (kind, reason, cooldown_sec)。"""
+    if status_code in _QUOTA_HTTP:
+        kind, why = _QUOTA_HTTP[status_code]
+        return kind, f"HTTP {status_code} {why}", _COOLDOWN_SEC[kind]
+    if isinstance(data, dict):
+        code = data.get("code")
+        if code is not None and str(code) in _QUOTA_BODY_CODES:
+            kind, why = _QUOTA_BODY_CODES[str(code)]
+            msg = data.get("message") or why
+            return kind, f"code={code} {msg}", _COOLDOWN_SEC[kind]
+    if status_code >= 400:
+        return None
+    low = (text or "").lower()
+    for kw in _QUOTA_KEYWORDS:
+        if kw in low:
+            return "exhausted", f"响应含额度类关键词：{kw}", _COOLDOWN_SEC["exhausted"]
+    return None
+
+
+def list_credentials(provider_id: int, only_enabled: bool = True) -> list[dict]:
+    sql = "SELECT * FROM provider_credentials WHERE provider_id=?"
+    if only_enabled:
+        sql += " AND enabled=1"
+    sql += " ORDER BY sort_order, id"
+    return db.query(sql, (provider_id,))
+
+
+def usable_credentials(provider_id: int, exclude_ids: set[int] | None = None) -> list[dict]:
+    """候选账号：仅取 active（冷却到期的自动恢复），按「最久没用过」优先，摊薄限流。"""
+    now = time.strftime("%Y-%m-%d %H:%M:%S")
+    out: list[dict] = []
+    for c in list_credentials(provider_id):
+        if exclude_ids and c["id"] in exclude_ids:
+            continue
+        if c["status"] == "cooling":
+            if (c.get("cooldown_until") or "") > now:
+                continue
+            db.execute(
+                "UPDATE provider_credentials SET status='active', cooldown_until=NULL, "
+                "updated_at=datetime('now','localtime') WHERE id=?",
+                (c["id"],),
+            )
+            c["status"] = "active"
+        if c["status"] != "active":
+            continue
+        out.append(c)
+    out.sort(key=lambda c: (c.get("last_used_at") or "0000", c["id"]))
+    return out
+
+
+# 池内账号状态 → 报给用户的失败原因。余额不足最需要用户行动，所以优先报它
+_KIND_PRIORITY = ("exhausted", "invalid", "cooling")
+
+
+def pool_fail_kind(states) -> str:
+    """从池内账号状态（或本轮已试过的失败 kind）推断最该提示的原因。
+
+    池内全是 exhausted 时报「余额不足」；混合时按 exhausted > invalid > cooling
+    取最需要用户处理的那个 —— 只报「接口错误」等于什么都没说。
+    """
+    for k in _KIND_PRIORITY:
+        if k in states:
+            return k
+    return "cooling"
+
+
+_STATUS_CN = {
+    "active": "可用",
+    "cooling": "冷却中",
+    "exhausted": "额度耗尽",
+    "invalid": "Key 失效",
+    "disabled": "已禁用",
+}
+
+
+def _cred_state_text(c: dict) -> str:
+    """把账号当前状态与上次错误压成一句，让用户知道下一步该点「恢复」还是该充钱。"""
+    st = _STATUS_CN.get(c.get("status") or "", c.get("status") or "未知")
+    txt = f"「{c.get('alias') or c.get('id')}」{st}"
+    err = (c.get("last_error") or "").strip()
+    if err:
+        txt += f"（上次原因：{err[:80]}）"
+    return txt
+
+
+def mark_credential(cred_id: int, *, kind: str, reason: str = "", cooldown_sec: int = 0) -> None:
+    """记录一次使用结果：ok / cooling / exhausted / invalid。"""
+    if kind == "ok":
+        db.execute(
+            "UPDATE provider_credentials SET last_used_at=datetime('now','localtime'), fail_count=0, "
+            "last_error=NULL, status='active', cooldown_until=NULL, updated_at=datetime('now','localtime') WHERE id=?",
+            (cred_id,),
+        )
+        return
+    status = {"cooling": "cooling", "exhausted": "exhausted", "invalid": "invalid"}.get(kind, "cooling")
+    until = (
+        time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time() + max(cooldown_sec, 30)))
+        if status == "cooling" else None
+    )
+    db.execute(
+        "UPDATE provider_credentials SET status=?, cooldown_until=?, fail_count=fail_count+1, "
+        "last_error=?, last_used_at=datetime('now','localtime'), updated_at=datetime('now','localtime') WHERE id=?",
+        (status, until, reason[:500], cred_id),
+    )
+
+
+def detect_api_error(data: Any) -> str | None:
+    """平台用「HTTP 200 + body 里 code 非成功」表达错误时，把错误提出来。"""
+    if isinstance(data, dict):
+        code = data.get("code")
+        if code not in (None, 0, "0", "Success", "success", "OK", "ok"):
+            msg = data.get("message") or data.get("msg") or ""
+            return f"平台返回 code={code} {msg}".strip()
+    return None
+
+
+def base_url_for(provider: dict, category: str) -> str:
+    key = {"image": "image_base_url", "video": "video_base_url"}.get(category)
+    if key and provider.get(key):
+        return provider[key].rstrip("/")
+    return (provider.get("base_url") or "").rstrip("/")
+
+
+def build_headers(provider: dict, spec_headers: dict | None, key: str | None = None) -> dict:
+    headers = {"Content-Type": "application/json"}
+    headers.update(spec_headers or {})
+    key = key if key is not None else resolve_api_key(provider)
+    hname = provider.get("auth_header") or "Authorization"
+    scheme = (provider.get("auth_scheme") or "").strip()
+    if key and key not in json.dumps(headers):
+        headers[hname] = f"{scheme} {key}".strip() if scheme else key
+    elif not key:
+        headers.pop(hname, None)
+    return headers
+
+
+# ---------------- 素材传输 ----------------
+
+def _to_data_uri(path: str | Path) -> str:
+    p = Path(path)
+    mime = mimetypes.guess_type(p.name)[0] or (
+        "image/jpeg" if classify_ext(p) == "image" else "application/octet-stream"
+    )
+    b = p.read_bytes()
+    return f"data:{mime};base64,{base64.b64encode(b).decode()}"
+
+
+def resolve_material(item: Any, transport: str = "auto") -> str | None:
+    """把参考素材转成平台能收的形式（URL 或 data URI）。"""
+    if item is None:
+        return None
+    if isinstance(item, str):
+        s = item.strip()
+        if not s:
+            return None
+        if s.startswith(("http://", "https://", "data:")):
+            return s
+        p = Path(s)
+        if not p.is_absolute():
+            return s
+        if transport == "url":
+            raise ProviderError(f"该平台要求 URL，但素材是本地文件：{p.name}", stage="material")
+        return _to_data_uri(p)
+    # dict 形式：{path|url, transport}
+    if isinstance(item, dict):
+        if item.get("url"):
+            return item["url"]
+        if item.get("data_uri"):
+            return item["data_uri"]
+        if item.get("path"):
+            return resolve_material(item["path"], item.get("transport", transport))
+    return None
+
+
+# ---------------- Jinja2 渲染 ----------------
+
+def render_text(tpl: str, ctx: dict) -> str:
+    return Template(tpl, trim_blocks=False, lstrip_blocks=False).render(**ctx)
+
+
+def render_body(body_tpl: str, ctx: dict) -> Any:
+    """渲染请求体。先渲染成文本，再尝试解析为 JSON；失败则返回原文。"""
+    rendered = render_text(body_tpl, ctx)
+    try:
+        return json.loads(rendered)
+    except json.JSONDecodeError:
+        return rendered
+
+
+def apply_param_map(param_map: dict, params: dict) -> dict:
+    out = dict(params)
+    for k, mapping in (param_map or {}).items():
+        if isinstance(mapping, dict) and out.get(k) in mapping:
+            out[k] = mapping[out[k]]
+    return out
+
+
+# ---------------- JSONPath ----------------
+
+def jp_first(data: Any, paths: list[str] | str | None) -> Any:
+    if not paths:
+        return None
+    if isinstance(paths, str):
+        paths = [paths]
+    for p in paths:
+        try:
+            expr = jp_parse(p)
+            matches = expr.find(data)
+            if matches:
+                return matches[0].value
+        except Exception:
+            continue
+    return None
+
+
+def jp_all(data: Any, paths: list[str] | str | None) -> list:
+    if not paths:
+        return []
+    if isinstance(paths, str):
+        paths = [paths]
+    for p in paths:
+        try:
+            expr = jp_parse(p)
+            matches = expr.find(data)
+            if matches:
+                return [m.value for m in matches]
+        except Exception:
+            continue
+    return []
+
+
+# ---------------- 执行 ----------------
+
+@dataclass
+class ExecResult:
+    ok: bool
+    mode: str
+    task_id: str | None = None
+    files: list[dict] = field(default_factory=list)   # [{kind, data_uri|url|bytes}]
+    raw: dict = field(default_factory=dict)
+    request_preview: dict | None = None
+    error: str | None = None
+    detail: Any = None
+    text: str | None = None                            # 大模型类返回的文本
+
+
+def _client(provider: dict, timeout: int) -> httpx.Client:
+    kwargs: dict = {"timeout": timeout, "follow_redirects": True}
+    mode = provider.get("proxy_mode") or "system"
+    if mode == "direct":
+        kwargs["trust_env"] = False
+    elif mode == "custom" and provider.get("proxy_url"):
+        kwargs["proxy"] = provider["proxy_url"]
+    return httpx.Client(**kwargs)
+
+
+def execute(
+    bundle: dict,
+    params: dict,
+    *,
+    dry_run: bool = False,
+    progress: Callable[[int, str], None] | None = None,
+) -> ExecResult:
+    """执行一次生成。供应商配了密钥池时，命中额度/鉴权类失败会自动切下一个账号。"""
+    provider = bundle["provider"]
+    if dry_run:
+        candidates: list[dict | None] = [None]
+    else:
+        pool = list_credentials(provider["id"], only_enabled=False)
+        if pool:
+            candidates = list(usable_credentials(provider["id"]))
+            if not candidates:
+                # 池内一个能用的都没有 —— 必须把原因带出去，否则界面只会显示「接口错误」
+                enabled_pool = list_credentials(provider["id"]) or pool
+                raise QuotaExceeded(
+                    "账号全部不可用，本次请求未发出（未消耗额度）："
+                    + "；".join(_cred_state_text(c) for c in enabled_pool)
+                    + "。若已充值或已更换令牌，请到设置页点该账号的「恢复」后重试",
+                    kind=pool_fail_kind({c.get("status") for c in enabled_pool}),
+                    cooldown_sec=0,
+                )
+        else:
+            candidates = [None]
+
+    tried: list[str] = []
+    tried_kinds: set[str] = set()
+    for cred in candidates:
+        try:
+            res = _execute_once(bundle, params, dry_run=dry_run, progress=progress, credential=cred)
+            if cred:
+                mark_credential(cred["id"], kind="ok")
+            return res
+        except QuotaExceeded as e:
+            if cred is None:
+                raise
+            tried.append(f"{cred['alias']}：{e}")
+            tried_kinds.add(e.kind)
+            mark_credential(cred["id"], kind=e.kind, reason=str(e), cooldown_sec=e.cooldown_sec)
+            if progress:
+                progress(3, f"账号「{cred['alias']}」不可用，自动切换下一个…")
+            continue
+    raise QuotaExceeded(
+        f"密钥池内 {len(candidates)} 个账号均不可用：{'；'.join(tried)}"
+        "。若为额度耗尽，充值后请到设置页点该账号的「恢复」再试",
+        kind=pool_fail_kind(tried_kinds),
+        cooldown_sec=0, detail={"tried": tried},
+    )
+
+
+def build_ctx(model: dict, provider: dict, params: dict) -> dict:
+    """把「语义参数 + 模型默认值」渲染成模板上下文（与 execute 用的是同一套）。"""
+    param_map = jloads(model.get("param_map"), {}) or {}
+    defaults = jloads(model.get("defaults"), {}) or {}
+    merged = {**defaults, **params}
+    ctx = apply_param_map(param_map, merged)
+    ctx.setdefault("model", model.get("remote_model_name") or model["model_name"])
+    ctx.setdefault("n", 1)
+
+    transport = merged.get("transport", "auto")
+    ctx["ref_images"] = [
+        x for x in (resolve_material(i, transport) for i in (merged.get("ref_images") or [])) if x
+    ]
+    ctx["ref_audios"] = [
+        x for x in (resolve_material(i, transport) for i in (merged.get("ref_audios") or [])) if x
+    ]
+    ctx["first_frame"] = resolve_material(merged.get("first_frame"), transport)
+    ctx["last_frame"] = resolve_material(merged.get("last_frame"), transport)
+    ctx["ref_images_b64"] = [_split_data_uri(x) for x in ctx["ref_images"]]
+    ctx["ref_audios_b64"] = [_split_data_uri(x) for x in ctx["ref_audios"]]
+    return ctx
+
+
+def estimate(bundle: dict, params: dict) -> dict:
+    """成本预估：走供应商 meta.estimate 指定的「免费预估」端点，不产生任何生成。
+
+    官方对该类端点的说明是「不消耗积分、不调用模型」；若供应商没配 estimate 就跳过。
+    同样走密钥池：一个账号不行就换下一个。
+    """
+    model = bundle["model"]
+    provider = bundle["provider"]
+    meta = jloads(provider.get("meta"), {}) or {}
+    spec = meta.get("estimate") or {}
+    if not spec.get("path"):
+        return {"supported": False, "reason": f"供应商「{provider['name']}」未配置预估端点"}
+
+    req_spec = jloads(model.get("request_spec"), {}) or {}
+    ctx = build_ctx(model, provider, params)
+    base = base_url_for(provider, model["category"])
+    path = render_text(spec["path"], ctx)
+    url = base + path if path.startswith("/") else path
+    body = render_body(req_spec.get("body") or "{}", ctx)
+
+    pool = list_credentials(provider["id"], only_enabled=False)
+    candidates: list[dict | None] = list(usable_credentials(provider["id"])) if pool else [None]
+
+    last: dict = {}
+    for cred in candidates:
+        headers = build_headers(provider, spec.get("headers"), resolve_api_key(provider, cred))
+        try:
+            with _client(provider, int(spec.get("timeout_sec") or 30)) as client:
+                r = client.request(
+                    (spec.get("method") or "POST").upper(), url, headers=headers,
+                    json=body if isinstance(body, (dict, list)) else None,
+                    content=None if isinstance(body, (dict, list)) else str(body).encode("utf-8"),
+                )
+        except Exception as e:  # noqa: BLE001
+            last = {"supported": True, "ok": False, "url": url, "error": f"请求异常：{e}"}
+            continue
+
+        data = _safe_json(r)
+        code = data.get("code") if isinstance(data, dict) else None
+        # 鉴权/额度类问题 → 标记该账号并换下一个
+        if cred and code in (21007, 26004, 29998):
+            hit = detect_quota(r.status_code, data, r.text)
+            kind = hit[0] if hit else "invalid"
+            cooldown = hit[2] if hit else 0
+            mark_credential(cred["id"], kind=kind, reason=f"预估时返回 code={code}", cooldown_sec=cooldown)
+            last = {"supported": True, "ok": False, "credential": cred["alias"], "code": code,
+                    "message": data.get("message")}
+            continue
+
+        credits = jp_first(data, spec.get("credits_path")) if spec.get("credits_path") else None
+        can = jp_first(data, spec.get("balance_needed_path")) if spec.get("balance_needed_path") else None
+        ok = r.status_code < 400 and code in (0, "0", None)
+        return {
+            "supported": True, "ok": ok, "url": url, "status": r.status_code,
+            "credits": credits, "can_generate": can, "code": code,
+            "credential": (cred or {}).get("alias"),
+            "message": (data.get("message") if isinstance(data, dict) else None),
+            "raw": _truncate(data, 600),
+            "request_preview": {"method": spec.get("method", "POST"), "url": url, "body": _mask(body)},
+        }
+    return last or {"supported": True, "ok": False, "error": "没有可用账号"}
+
+
+def _execute_once(
+    bundle: dict,
+    params: dict,
+    *,
+    dry_run: bool = False,
+    progress: Callable[[int, str], None] | None = None,
+    credential: dict | None = None,
+) -> ExecResult:
+    """单账号执行。params 为语义参数，见 build_params 的产物。"""
+    model = bundle["model"]
+    provider = bundle["provider"]
+    category = model["category"]
+    req_spec = jloads(model.get("request_spec"), {}) or {}
+    resp_spec = jloads(model.get("response_spec"), {}) or {}
+    poll_spec = jloads(model.get("poll_spec"), {}) or {}
+
+    # dry-run 的目的是「还没配好就先看请求长什么样」，所以不拦未启用的供应商
+    if not provider.get("enabled") and not dry_run:
+        raise ProviderError(f"供应商「{provider['name']}」未启用（请先在设置页填写并启用）", stage="config")
+
+    ctx = build_ctx(model, provider, params)
+
+    key = resolve_api_key(provider, credential)
+    base = base_url_for(provider, category)
+    path = render_text(req_spec.get("path") or "", ctx)
+    url = base + path if path.startswith("/") else (path or base)
+    headers = build_headers(provider, req_spec.get("headers"), key)
+    body = render_body(req_spec.get("body") or "{}", ctx)
+
+    preview = {
+        "method": req_spec.get("method", "POST"), "url": url, "headers": _mask(headers), "body": _mask(body),
+        "credential": (credential or {}).get("alias"),
+    }
+    if dry_run:
+        return ExecResult(ok=True, mode="dry_run", request_preview=preview)
+
+    if not base:
+        raise ProviderError(
+            f"供应商「{provider['name']}」未配置 base_url，无法请求", stage="config", detail={"url": url}
+        )
+
+    method = (req_spec.get("method") or "POST").upper()
+    retry = int(provider.get("retry") or 0)
+    timeout = int(provider.get("timeout_sec") or 600)
+    last_err: Exception | None = None
+
+    for attempt in range(retry + 1):
+        try:
+            with _client(provider, timeout) as client:
+                if progress:
+                    who = f"（账号 {credential['alias']}）" if credential else ""
+                    progress(5, f"提交请求{who}（第 {attempt + 1} 次）")
+                # 流式（请求体含 "stream": true 且同步模式）：边收边报进度，支持思考过程
+                if isinstance(body, dict) and body.get("stream") and model["mode"] == "synchronous":
+                    return _collect_stream(client, method, url, headers, body, preview, progress)
+                resp = client.request(
+                    method, url, headers=headers,
+                    json=body if isinstance(body, (dict, list)) else None,
+                    content=None if isinstance(body, (dict, list)) else str(body).encode("utf-8"),
+                )
+                data = _safe_json(resp)
+                quota = detect_quota(resp.status_code, data, resp.text)
+                if quota:
+                    kind, reason, cd = quota
+                    raise QuotaExceeded(reason, kind=kind, cooldown_sec=cd,
+                                        detail={"status": resp.status_code, "_truncate": _truncate(data)})
+                if resp.status_code >= 400:
+                    raise ProviderError(
+                        f"HTTP {resp.status_code}：{resp.text[:500]}", stage="request",
+                        detail={"status": resp.status_code, "url": url},
+                    )
+                api_err = detect_api_error(data)
+                if api_err:
+                    raise ProviderError(api_err, stage="response", detail={"response": _truncate(data)})
+
+                # 同步模式
+                if model["mode"] == "synchronous":
+                    return _collect_sync(model, provider, data, resp, resp_spec, preview, progress)
+
+                # 异步模式：拿 task_id → 轮询
+                task_id = jp_first(data, resp_spec.get("task_id"))
+                if task_id is None:
+                    # 有些平台同步返回（如直接给 url）
+                    got = _collect_sync(model, provider, data, resp, resp_spec, preview, progress)
+                    if got.files:
+                        return got
+                    raise ProviderError(
+                        "响应中未取到 task_id，请在模型配置的「响应取值」里修正 task_id 路径",
+                        stage="response", detail={"response": _truncate(data)},
+                    )
+                if progress:
+                    progress(15, f"已提交，任务号 {task_id}")
+                return _poll_and_collect(
+                    model, provider, poll_spec, resp_spec, str(task_id), preview, progress, key
+                )
+        except QuotaExceeded:
+            raise
+        except Exception as e:  # noqa: BLE001
+            last_err = e
+            if attempt < retry:
+                time.sleep(min(2 ** attempt, 10))
+                continue
+            break
+
+    if isinstance(last_err, ProviderError):
+        raise last_err
+    raise ProviderError(f"请求失败：{last_err}", stage="request")
+
+
+def _split_data_uri(value: str) -> dict:
+    """把素材拆成 {"data": <base64>, "mime_type": ...}，供 inlineData 这类结构使用。"""
+    if not value:
+        return {"data": "", "mime_type": ""}
+    if value.startswith("data:"):
+        header, b64 = value.split(",", 1)
+        mime = (header[5:].split(";")[0] or "image/png")
+        return {"data": b64, "mime_type": mime}
+    return {"data": value, "mime_type": ""}
+
+
+def _collect_stream(client, method, url, headers, body, preview, progress) -> ExecResult:
+    """流式收集（OpenAI 兼容 SSE，请求体 "stream": true 时走这里）。
+
+    边收边把「已输出字数 / 思考片段」写进任务进度：思考内容取
+    choices[0].delta.reasoning_content（DeepSeek 思考型模型），正文取 delta.content。
+    """
+    text_parts: list[str] = []
+    content_chars = 0
+    think_tail = ""
+    think_chars = 0
+    finish = ""
+    last_pb = 0.0
+
+    with client.stream(method, url, headers=headers, json=body) as resp:
+        if resp.status_code >= 400:
+            raw = resp.read().decode("utf-8", "ignore")
+            quota = detect_quota(resp.status_code, None, raw)
+            if quota:
+                kind, reason, cd = quota
+                raise QuotaExceeded(reason, kind=kind, cooldown_sec=cd,
+                                    detail={"status": resp.status_code, "_truncate": raw[:500]})
+            raise ProviderError(
+                f"HTTP {resp.status_code}：{raw[:500]}", stage="request",
+                detail={"status": resp.status_code, "url": url},
+            )
+        for line in resp.iter_lines():
+            if not line or not line.startswith("data:"):
+                continue
+            chunk = line[5:].strip()
+            if chunk == "[DONE]":
+                break
+            try:
+                evt = json.loads(chunk)
+            except Exception:
+                continue
+            if isinstance(evt, dict) and evt.get("error"):
+                raise ProviderError(str(evt["error"])[:300], stage="response",
+                                    detail={"response": evt})
+            choices = evt.get("choices") or []
+            if not choices:
+                continue
+            delta = choices[0].get("delta") or {}
+            rc = delta.get("reasoning_content")
+            if rc:
+                think_chars += len(rc)
+                think_tail = (think_tail + rc)[-50:]
+            c = delta.get("content")
+            if c:
+                text_parts.append(c)
+                content_chars += len(c)
+            if choices[0].get("finish_reason"):
+                finish = choices[0]["finish_reason"]
+            now = time.time()
+            if progress and now - last_pb >= 1.5:
+                last_pb = now
+                note = f"生成中… 已输出 {content_chars} 字"
+                if think_chars:
+                    note += f"｜思考 {think_chars} 字：…{think_tail}"
+                progress(min(88, 30 + content_chars // 100), note)
+
+    text = "".join(text_parts)
+    if progress:
+        if finish == "length":
+            tail = "（⚠️ 输出因 max_tokens 被截断）"
+        elif think_chars:
+            tail = f"（正文 {content_chars} 字，思考 {think_chars} 字）"
+        else:
+            tail = f"（正文 {content_chars} 字）"
+        progress(90, f"已返回{tail}")
+    raw = {"_stream": True, "finish_reason": finish or "stop"}
+    return ExecResult(ok=bool(text), mode="synchronous", raw=raw,
+                      request_preview=preview, text=text,
+                      error=None if text else "流式响应未收到任何内容")
+
+
+def _collect_sync(model, provider, data, resp, resp_spec, preview, progress) -> ExecResult:
+    files: list[dict] = []
+    for val in jp_all(data, resp_spec.get("images")):
+        files.append({"kind": "image", "value": val})
+    for val in jp_all(data, resp_spec.get("videos")):
+        files.append({"kind": "video", "value": val})
+    text = jp_first(data, resp_spec.get("text"))
+    if not files:
+        single = jp_first(data, resp_spec.get("single"))
+        if single:
+            files.append({"kind": resp_spec.get("single_kind", "image"), "value": single})
+    if progress:
+        progress(90, f"已返回 {len(files)} 个结果" + (f"（文本 {len(text or '')} 字）" if text else ""))
+    return ExecResult(ok=bool(files or text), mode="synchronous", files=files, raw=_truncate(data),
+                     request_preview=preview, error=None if (files or text) else "响应中未取到结果",
+                     text=text)
+
+
+def _poll_and_collect(model, provider, poll_spec, resp_spec, task_id, preview, progress,
+                      key: str | None = None) -> ExecResult:
+    if not poll_spec:
+        return ExecResult(ok=False, mode="asynchronous", task_id=task_id, request_preview=preview,
+                          error="模型配置缺少轮询（poll_spec）", raw={})
+    interval = int(poll_spec.get("interval_sec") or 5)
+    total_timeout = int(poll_spec.get("timeout_sec") or provider.get("timeout_sec") or 1800)
+    status_path = poll_spec.get("status_field") or "$.status"
+    ok_vals = [str(v) for v in (poll_spec.get("success_values") or ["Success", "succeeded"])]
+    fail_vals = [str(v) for v in (poll_spec.get("fail_values") or ["Fail", "failed"])]
+    ctx = {"task_id": task_id}
+    base = base_url_for(provider, model["category"])
+    headers = build_headers(provider, None, key)
+
+    started = time.time()
+    last_data: Any = {}
+    with _client(provider, int(provider.get("timeout_sec") or 600)) as client:
+        while True:
+            if time.time() - started > total_timeout:
+                raise ProviderError(f"轮询超时（{total_timeout}s），任务 {task_id} 仍未完成", stage="poll",
+                                    detail={"task_id": task_id})
+            p = render_text(poll_spec.get("path") or "", ctx)
+            url = base + p if p.startswith("/") else p
+            r = client.request((poll_spec.get("method") or "GET").upper(), url, headers=headers,
+                               json=(poll_spec.get("body") if isinstance(poll_spec.get("body"), dict) else None))
+            if r.status_code >= 400:
+                quota = detect_quota(r.status_code, None, r.text)
+                if quota:
+                    kind, reason, cd = quota
+                    raise QuotaExceeded(f"轮询被拒：{reason}", kind=kind, cooldown_sec=cd)
+                raise ProviderError(f"轮询失败 HTTP {r.status_code}：{r.text[:300]}", stage="poll")
+            last_data = _safe_json(r)
+            status = str(jp_first(last_data, status_path) or "")
+            elapsed = time.time() - started
+            pct = min(88, 15 + int(elapsed / max(total_timeout, 1) * 70))
+            if progress:
+                progress(pct, f"生成中… 状态 {status or '—'}（{elapsed:.0f}s）")
+            if status in ok_vals or any(v and v.lower() in status.lower() for v in ok_vals):
+                break
+            if status in fail_vals or any(v and v.lower() in status.lower() for v in fail_vals):
+                raise ProviderError(
+                    f"平台返回失败状态：{status}", stage="poll",
+                    detail={"status": status, "response": _truncate(last_data)},
+                )
+            time.sleep(interval)
+
+    # 轮询成功：先看有没有直接给结果 URL（图片/视频通用）
+    #
+    # 同一份产物只登记一条。有些平台的 poll_spec 里 result_images 与
+    # result_videos 指的是同一个 jsonpath（MiniMax 接口A 都是
+    # `$.data.results[*].url`），于是同一段视频会被登记成「图片 + 视频」两条，
+    # 落盘时下两遍、还多出一个 .png 副本，页面看着就是两个成品。
+    # 值相同时按 video 记：一个地址既能当图又能当视频，那它就是视频。
+    files: list[dict] = []
+    by_value: dict[str, dict] = {}
+    for kind, spec_key in (("image", "result_images"), ("video", "result_videos")):
+        for val in jp_all(last_data, poll_spec.get(spec_key)):
+            if not val:
+                continue
+            hit = by_value.get(val)
+            if hit is None:
+                hit = {"kind": kind, "value": val, "task_id": task_id}
+                by_value[val] = hit
+                files.append(hit)
+            elif kind == "video":
+                hit["kind"] = "video"
+    if files:
+        if progress:
+            progress(92, f"已产出 {len(files)} 个结果")
+        return ExecResult(ok=True, mode="asynchronous", task_id=task_id, files=files,
+                          raw=_truncate(last_data), request_preview=preview)
+
+    # 再走「取 file_id → 换下载地址」的老路径
+    rid = jp_first(last_data, poll_spec.get("result_video") or resp_spec.get("videos"))
+    dl_tpl = poll_spec.get("download_path")
+    if rid and dl_tpl:
+        dl = render_text(dl_tpl, {**ctx, "result_video": rid})
+        dl_url = base + dl if dl.startswith("/") else dl
+        with _client(provider, int(provider.get("timeout_sec") or 600)) as client:
+            r = client.get(dl_url, headers=headers)
+            if r.status_code < 400:
+                payload = _safe_json(r)
+                real = jp_first(payload, poll_spec.get("download_field")) if payload else None
+                files.append({"kind": "video", "value": real or dl_url, "task_id": task_id, "file_id": rid})
+            else:
+                files.append({"kind": "video", "value": dl_url, "task_id": task_id, "file_id": rid})
+    else:
+        for v in jp_all(last_data, resp_spec.get("videos")):
+            files.append({"kind": "video", "value": v, "task_id": task_id})
+        if rid and not files:
+            files.append({"kind": "video", "value": rid, "task_id": task_id})
+    if progress:
+        progress(92, f"已产出 {len(files)} 个结果")
+    return ExecResult(ok=bool(files), mode="asynchronous", task_id=task_id, files=files,
+                      raw=_truncate(last_data), request_preview=preview,
+                      error=None if files else "轮询结束但未取到结果 URL")
+
+
+def download_result(value: str, dest: Path, provider: dict | None = None, timeout: int = 600) -> Path:
+    """把结果（URL 或 data URI）下载/落盘到 dest。"""
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if value.startswith("data:"):
+        header, b64 = value.split(",", 1)
+        dest.write_bytes(base64.b64decode(b64))
+        return dest
+    if value.startswith(("http://", "https://")):
+        with _client(provider or {}, timeout) as client:
+            r = client.get(value)
+            r.raise_for_status()
+            dest.write_bytes(r.content)
+        return dest
+    p = Path(value)
+    if p.exists():
+        return p
+    raise ProviderError(f"无法下载结果：{value[:200]}", stage="download")
+
+
+def _safe_json(resp) -> Any:
+    try:
+        return resp.json()
+    except Exception:
+        return {"_text": resp.text[:2000]}
+
+
+def _truncate(data: Any, limit: int = 4000) -> Any:
+    s = json.dumps(data, ensure_ascii=False) if not isinstance(data, str) else data
+    if len(s) <= limit:
+        return data
+    return {"_truncated": s[:limit]}
+
+
+def _mask(obj: Any) -> Any:
+    """预览时遮蔽密钥。"""
+    if isinstance(obj, dict):
+        return {
+            k: ("***" if any(t in k.lower() for t in ("key", "token", "secret", "authorization")) else _mask(v))
+            for k, v in obj.items()
+        }
+    if isinstance(obj, list):
+        return [_mask(x) for x in obj]
+    if isinstance(obj, str) and len(obj) > 300:
+        return obj[:300] + f"…(+{len(obj) - 300})"
+    return obj

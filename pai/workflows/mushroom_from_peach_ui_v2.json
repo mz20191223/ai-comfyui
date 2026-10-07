@@ -1,0 +1,207 @@
+{
+  "last_node_id": 11,
+  "last_link_id": 12,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "UnetLoaderGGUF",
+      "pos": [30, 180],
+      "size": [320, 60],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {"name": "MODEL", "type": "MODEL", "links": [1], "slot_index": 0}
+      ],
+      "properties": {"Node name for S&R": "UnetLoaderGGUF"},
+      "widgets_values": ["qwen-image-edit-2511-Q4_K_M.gguf"]
+    },
+    {
+      "id": 2,
+      "type": "CLIPLoaderGGUF",
+      "pos": [30, 320],
+      "size": [320, 60],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {"name": "CLIP", "type": "CLIP", "links": [2, 3], "slot_index": 0}
+      ],
+      "properties": {"Node name for S&R": "CLIPLoaderGGUF"},
+      "widgets_values": ["Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf", "qwen_image"]
+    },
+    {
+      "id": 3,
+      "type": "VAELoader",
+      "pos": [30, 470],
+      "size": [320, 60],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {"name": "VAE", "type": "VAE", "links": [4, 5], "slot_index": 0}
+      ],
+      "properties": {"Node name for S&R": "VAELoader"},
+      "widgets_values": ["qwen_image_vae.safetensors"]
+    },
+    {
+      "id": 4,
+      "type": "ModelSamplingAuraFlow",
+      "pos": [400, 200],
+      "size": [320, 100],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {"name": "model", "type": "MODEL", "link": 1}
+      ],
+      "outputs": [
+        {"name": "MODEL", "type": "MODEL", "links": [8], "slot_index": 0}
+      ],
+      "properties": {"Node name for S&R": "ModelSamplingAuraFlow"},
+      "widgets_values": [1.73]
+    },
+    {
+      "id": 5,
+      "type": "TextEncodeQwenImageEdit",
+      "pos": [400, 340],
+      "size": [320, 140],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {"name": "clip", "type": "CLIP", "link": 2},
+        {"name": "prompt", "type": "STRING", "link": null, "widget": {"name": "prompt"}},
+        {"name": "vae", "type": "VAE", "link": 4},
+        {"name": "image", "type": "IMAGE", "link": 6}
+      ],
+      "outputs": [
+        {"name": "CONDITIONING", "type": "CONDITIONING", "links": [9], "slot_index": 0}
+      ],
+      "properties": {"Node name for S&R": "TextEncodeQwenImageEdit"},
+      "widgets_values": ["Keep the EXACT same art style of this reference image (round chibi, Pixar-like 3D render, soft warm lighting, clean light-gray background). Replace the character with a cute little MUSHROOM: a red round cap with white polka dots, a round face under the cap brim, big sparkly eyes, pink blush cheeks, a tiny white chubby body, short stubby legs and round little hands. Full-body front view, standing, facing the camera, centered composition, consistent style."]
+    },
+    {
+      "id": 6,
+      "type": "CLIPTextEncode",
+      "pos": [400, 560],
+      "size": [320, 100],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {"name": "clip", "type": "CLIP", "link": 3},
+        {"name": "text", "type": "STRING", "link": null, "widget": {"name": "text"}}
+      ],
+      "outputs": [
+        {"name": "CONDITIONING", "type": "CONDITIONING", "links": [10], "slot_index": 0}
+      ],
+      "properties": {"Node name for S&R": "CLIPTextEncode"},
+      "widgets_values": ["low quality, blurry, deformed, extra limbs, bad anatomy, watermark, text, different character, color changed"]
+    },
+    {
+      "id": 7,
+      "type": "LoadImage",
+      "pos": [400, 780],
+      "size": [320, 100],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {"name": "IMAGE", "type": "IMAGE", "links": [6], "slot_index": 0}
+      ],
+      "properties": {"Node name for S&R": "LoadImage"},
+      "widgets_values": ["peach_role_v6.png", "image"]
+    },
+    {
+      "id": 8,
+      "type": "EmptyLatentImage",
+      "pos": [780, 560],
+      "size": [320, 100],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {"name": "LATENT", "type": "LATENT", "links": [7], "slot_index": 0}
+      ],
+      "properties": {"Node name for S&R": "EmptyLatentImage"},
+      "widgets_values": [768, 768, 1]
+    },
+    {
+      "id": 9,
+      "type": "KSampler",
+      "pos": [780, 300],
+      "size": [320, 100],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {"name": "model", "type": "MODEL", "link": 8},
+        {"name": "positive", "type": "CONDITIONING", "link": 9},
+        {"name": "negative", "type": "CONDITIONING", "link": 10},
+        {"name": "latent_image", "type": "LATENT", "link": 7}
+      ],
+      "outputs": [
+        {"name": "LATENT", "type": "LATENT", "links": [11], "slot_index": 0}
+      ],
+      "properties": {"Node name for S&R": "KSampler"},
+      "widgets_values": [12345, 22, 6.0, "euler", "normal", 1.0]
+    },
+    {
+      "id": 10,
+      "type": "VAEDecode",
+      "pos": [1080, 400],
+      "size": [320, 100],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {"name": "samples", "type": "LATENT", "link": 11},
+        {"name": "vae", "type": "VAE", "link": 5}
+      ],
+      "outputs": [
+        {"name": "IMAGE", "type": "IMAGE", "links": [12], "slot_index": 0}
+      ],
+      "properties": {"Node name for S&R": "VAEDecode"},
+      "widgets_values": []
+    },
+    {
+      "id": 11,
+      "type": "SaveImage",
+      "pos": [1360, 400],
+      "size": [320, 100],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {"name": "images", "type": "IMAGE", "link": 12}
+      ],
+      "outputs": [],
+      "properties": {"Node name for S&R": "SaveImage"},
+      "widgets_values": ["mushroom", "image"]
+    }
+  ],
+  "links": [
+    [1, 1, 0, 4, 0, "MODEL"],
+    [2, 2, 0, 5, 0, "CLIP"],
+    [3, 2, 0, 6, 0, "CLIP"],
+    [4, 3, 0, 5, 1, "VAE"],
+    [5, 3, 0, 10, 1, "VAE"],
+    [6, 7, 0, 5, 3, "IMAGE"],
+    [7, 8, 0, 9, 3, "LATENT"],
+    [8, 4, 0, 9, 0, "MODEL"],
+    [9, 5, 0, 9, 1, "CONDITIONING"],
+    [10, 6, 0, 9, 2, "CONDITIONING"],
+    [11, 9, 0, 10, 0, "LATENT"],
+    [12, 10, 0, 11, 0, "IMAGE"]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}

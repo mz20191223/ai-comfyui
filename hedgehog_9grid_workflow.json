@@ -1,0 +1,70 @@
+{
+  "1": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": { "ckpt_name": "sd_xl_base_1.0.safetensors" },
+    "_meta": { "title": "Load Checkpoint (SDXL 基座)" }
+  },
+  "8": {
+    "class_type": "LoraLoader",
+    "inputs": {
+      "lora_name": "Canopus-Pixar-Art.safetensors",
+      "strength_model": 0.8,
+      "strength_clip": 0.8,
+      "model": ["1", 0],
+      "clip": ["1", 1]
+    },
+    "_meta": { "title": "Load LoRA (Canopus Pixar Art)" }
+  },
+  "9": {
+    "class_type": "LoadImage",
+    "inputs": { "upload": "image" },
+    "_meta": { "title": "加载参考角色图 (上传你的主角)" }
+  },
+  "10": {
+    "class_type": "VAEEncode",
+    "inputs": { "pixels": ["9", 0], "vae": ["1", 2] },
+    "_meta": { "title": "VAE 编码" }
+  },
+  "2": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "pixar style, disney pixar, character design reference sheet, grid of 9 panels, the same cute baby hedgehog character, consistent design across all panels, front view, side profile, back view, 3/4 view, happy smile, surprised, sleeping, waving paw, sitting, different expressions and poses, solid pastel light blue background, clean white divider lines, soft studio lighting, octane render, 8k uhd, masterpiece, best quality",
+      "clip": ["8", 1]
+    },
+    "_meta": { "title": "正提示词" }
+  },
+  "3": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "realistic, photo, lowres, bad anatomy, extra limbs, deformed, blurry, watermark, text, signature, human, person, dark, scary, multiple different animals, inconsistent character, messy, duplicate, overlapping",
+      "clip": ["8", 1]
+    },
+    "_meta": { "title": "负提示词" }
+  },
+  "5": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 246813579,
+      "steps": 30,
+      "cfg": 6,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 0.45,
+      "model": ["8", 0],
+      "positive": ["2", 0],
+      "negative": ["3", 0],
+      "latent_image": ["10", 0]
+    },
+    "_meta": { "title": "KSampler" }
+  },
+  "6": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["5", 0], "vae": ["1", 2] },
+    "_meta": { "title": "VAE Decode" }
+  },
+  "7": {
+    "class_type": "SaveImage",
+    "inputs": { "images": ["6", 0] },
+    "_meta": { "title": "保存图像" }
+  }
+}

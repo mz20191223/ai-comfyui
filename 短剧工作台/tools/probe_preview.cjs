@@ -1,0 +1,63 @@
+/**
+ * 剧本页「预览提示词」交互巡检：填表 → 点按钮 → 抓弹窗内容。
+ * 用法：node tools/probe_preview.cjs [pid]
+ */
+const fs = require('fs');
+const PW_CORE = process.env.PW_CORE
+  || 'C:/Users/Administrator/AppData/Roaming/npm/node_modules/@playwright/cli/node_modules/playwright-core';
+const { chromium } = require(PW_CORE);
+
+const PID = process.argv[2] || '1';
+const BASE = process.env.BASE || 'http://127.0.0.1:5192';
+const SHOT = 'storage/ui-tour';
+const EXE = [
+  process.env.CHROME_EXE,
+  'C:/Program Files/Google/Chrome/Application/chrome.exe',
+  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+].filter(Boolean).find((p) => fs.existsSync(p));
+
+(async () => {
+  fs.mkdirSync(SHOT, { recursive: true });
+  const browser = await chromium.launch({ headless: true, executablePath: EXE });
+  const page = await (await browser.newContext({ viewport: { width: 1600, height: 950 } })).newPage();
+  const errs = [];
+  const bad = [];
+  page.on('console', (m) => { if (m.type() === 'error') errs.push(m.text().slice(0, 260)); });
+  page.on('pageerror', (e) => errs.push('PAGEERROR ' + String(e).slice(0, 260)));
+  page.on('response', (r) => { if (r.status() >= 400) bad.push(`${r.status()} ${r.url().slice(0, 140)}`); });
+
+  await page.goto(`${BASE}/?_r=${Date.now()}/#/p/${PID}/script`, { waitUntil: 'load', timeout: 25000 });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForTimeout(1200);
+
+  // 填创作要求 + 参数
+  const reqBox = page.locator('input[placeholder*="创作要求"], textarea[placeholder*="创作要求"]').first();
+  const anyInput = (await reqBox.count()) ? reqBox : page.locator('.card input[type="text"]').first();
+  await anyInput.fill('帮我输出一个送外卖拯救世界的漫剧').catch(() => {});
+  await page.locator('input[placeholder="集数"]').first().fill('3').catch(() => {});
+  await page.locator('input[placeholder="题材"]').first().fill('软科幻').catch(() => {});
+
+  console.log('点击前 body 内文长度:', (await page.locator('body').innerText()).length);
+  await page.getByRole('button', { name: '预览提示词' }).click();
+  await page.waitForTimeout(1800);
+
+  const dlg = page.locator('.el-dialog:visible').last();
+  const dlgText = (await dlg.count()) ? await dlg.innerText().catch(() => '') : '';
+  const preText = await page.locator('.el-dialog .preview').last().innerText().catch(() => '');
+  const btnDisabled = await page.locator('.el-dialog .el-radio-button').last().getAttribute('class').catch(() => '');
+
+  await page.screenshot({ path: `${SHOT}/preview_dialog.png`, fullPage: false });
+
+  console.log('--- 弹窗是否出现 ---');
+  console.log('弹窗可见:', await dlg.isVisible().catch(() => false));
+  console.log('弹窗标题行:', dlgText.split('\n').slice(0, 4).join(' | '));
+  console.log('提示词字符数:', preText.length);
+  console.log('按意见重写档 disabled class:', btnDisabled);
+  console.log('--- 提示词前 600 字 ---');
+  console.log(preText.slice(0, 600));
+  console.log('--- 控制台报错', errs.length, '条 ---');
+  errs.forEach((e) => console.log('  ' + e));
+  console.log('--- 失败请求', bad.length, '条 ---');
+  bad.forEach((b) => console.log('  ' + b));
+  await browser.close();
+})().catch((e) => { console.error('FATAL', e); process.exit(1); });

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第2集 · 视频过渡提示词 — 可灵</title>
+<style>
+  :root {
+    --bg: #0d0d12;
+    --panel: #16161e;
+    --border: #2a2a35;
+    --accent: #d4a017;
+    --accent-glow: #f0c040;
+    --text: #e0e0e8;
+    --text-dim: #8888a0;
+    --code-bg: #1a1a24;
+    --green: #4ec970;
+    --red: #e84545;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
+    line-height: 1.7;
+    padding: 40px 20px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 26px; color: var(--accent-glow); border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 8px; }
+  .subtitle { color: var(--text-dim); font-size: 14px; margin-bottom: 32px; }
+  h2 { font-size: 20px; color: var(--accent); margin: 36px 0 12px; padding-left: 14px; border-left: 4px solid var(--accent); display: flex; align-items: center; gap: 10px; }
+  h2 .time { font-size: 13px; color: var(--text-dim); font-weight: normal; background: var(--panel); padding: 2px 10px; border-radius: 4px; border: 1px solid var(--border); }
+  .scene-desc { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 18px; margin: 8px 0 12px; font-size: 14px; color: var(--text-dim); }
+  .scene-desc b { color: var(--text); }
+  .prompt-box { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; margin: 8px 0 24px; overflow: hidden; }
+  .prompt-header { background: rgba(212,160,23,0.08); border-bottom: 1px solid var(--border); padding: 8px 16px; font-size: 13px; color: var(--text-dim); display: flex; justify-content: space-between; align-items: center; }
+  .prompt-header .platform { color: var(--accent); font-weight: 600; }
+  .prompt-header .dur { color: var(--green); font-size: 12px; }
+  .prompt-body { padding: 14px 16px; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; color: #c8c8d8; white-space: pre-wrap; word-break: break-word; line-height: 1.6; }
+  .ref-note { background: rgba(212,160,23,0.06); border: 1px dashed rgba(212,160,23,0.3); border-radius: 8px; padding: 12px 18px; margin: 16px 0; font-size: 13px; color: var(--text-dim); }
+  .ref-note b { color: var(--accent); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+  .section-tag { display: inline-block; font-size: 12px; padding: 2px 10px; border-radius: 4px; font-weight: 600; margin-left: 12px; }
+  .section-golden { background: rgba(212,160,23,0.15); color: var(--accent-glow); border: 1px solid rgba(212,160,23,0.3); }
+  .section-memory { background: rgba(78,201,112,0.15); color: var(--green); border: 1px solid rgba(78,201,112,0.3); }
+  .section-loop { background: rgba(0,150,255,0.15); color: #6090ff; border: 1px solid rgba(0,150,255,0.3); }
+  .section-permission { background: rgba(160,80,255,0.15); color: #b080ff; border: 1px solid rgba(160,80,255,0.3); }
+  .section-final { background: rgba(255,50,50,0.15); color: #ff6060; border: 1px solid rgba(255,50,50,0.3); }
+  .usage-guide { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 20px 24px; margin: 16px 0; }
+  .usage-guide h4 { color: var(--accent-glow); font-size: 16px; margin-bottom: 10px; }
+  .usage-guide ol { padding-left: 20px; }
+  .usage-guide li { margin: 6px 0; font-size: 14px; color: var(--text-dim); }
+  .usage-guide code { background: var(--code-bg); padding: 2px 6px; border-radius: 3px; font-size: 13px; color: var(--accent-glow); }
+</style>
+</head>
+<body>
+
+<h1>第2集 · 视频过渡提示词</h1>
+<p class="subtitle">《大圣协议：程序员终极幻想》第2集 | 可灵 图生视频 | 上传分镜图 + 粘贴下方过渡描述</p>
+
+<div class="usage-guide">
+  <h4>使用说明</h4>
+  <ol>
+    <li>可灵「图生视频」→ 上传对应镜头的 <b>分镜图</b></li>
+    <li>粘贴下方 <b>过渡描述</b>（仅描述动作/镜头运动，不分镜图中已有的画面细节）</li>
+    <li>时长 <b>5秒</b>，分辨率 <b>720p</b>（9:16竖屏）</li>
+    <li>保存为 <code>第二集-镜头XX.mp4</code></li>
+  </ol>
+</div>
+
+<div class="ref-note">
+  <b>提示词说明：</b>分镜图已包含画面内容，下面只描述：<br>
+  → 镜头运动（推拉摇移跟）<br>
+  → 角色动作/动画<br>
+  → 特效变化（光效、粒子、形态变化）<br>
+  → 5秒内的时间顺序
+</div>
+
+<!-- ==================== 章节一：金甲觉醒 ==================== -->
+<h2>章节一 · 金甲觉醒 <span class="section-tag section-golden">镜头1-4</span></h2>
+
+<!-- 镜头01 -->
+<h2>镜头01 · 代码世界坠落 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>过客从金色裂缝坠落 → 翻身抓住浮动代码 → 落在金色节点平台上<br>
+  <b>角色：</b>过客（金甲形态）
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">可灵 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Camera follows Guoke falling top-down. He flips body mid-air, reaches out and grabs floating code data, slowing his fall. Lands on circular node platform, one knee bent, hand touching surface. Golden crack closes behind him. Code particles float upward. 5 seconds, smooth continuous motion.</div>
+</div>
+
+<!-- 镜头02 -->
+<h2>镜头02 · 小七登录 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>小七从日志串探出头 → 抱着键盘绕过过客肩膀 → 扫描工牌<br>
+  <b>角色：</b>过客（金甲形态）、小七
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">可灵 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Low angle shot. Xiao Qi is already on Guoke's shoulder, reaching down with her miniature keyboard to scan his ID badge. Light beam scans "过客 ByteFly BF-1024". Guoke turns head slightly to look at her. Xiao Qi's golden fur glows, keyboard keys pulse gently. Subtle floating motion around them. Warm golden light. 5 seconds, gentle static shot with micro-movements.</div>
+</div>
+
+<!-- 镜头03 -->
+<h2>镜头03 · 金箍棒亮相 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>金箍棒已成型 → 能量脉冲发光 → 粒子环绕<br>
+	  <b>角色：</b>过客（金甲形态）
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">可灵 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Medium close-up, Guoke already holding the fully formed golden staff. The staff glows, golden energy pulses along its length, the word "REFACTOR" brightens. Code particles and golden light emanate from the staff, swirling around Guoke. Camera slowly pushes in on his determined expression. Subtle energy breathing effect. 5 seconds, static heroic pose with glowing energy animation.</div>
+</div>
+
+<!-- 镜头04 -->
+<h2>镜头04 · 三魔宣战 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>三魔出现在天空 → 向过客宣战 → 过客握棒备战<br>
+  <b>角色：</b>过客、内存黑洞王、死循环妖、权限魅影
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">可灵 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Low angle from behind Guoke. Three demons appear in the code sky, growing larger, their presence filling the frame. Guoke grips his golden staff, body tense. Camera slowly orbits from behind to a side profile, revealing the demons looming behind him. Slow dramatic reveal, continuous single shot, 5 seconds.</div>
+</div>
+
+<hr>
+
+<!-- ==================== 章节二：内存重构 ==================== -->
+<h2>章节二 · 金箍棒·内存重构 <span class="section-tag section-memory">镜头5-8</span></h2>
+
+<!-- 镜头05 -->
+<h2>镜头05 · 黑洞区吞噬 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>数据被吸入黑洞 → 过客金甲被引力拉扯 → 握棒稳住身形<br>
+  <b>角色：</b>过客（金甲形态）、内存黑洞王
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">可灵 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Wide shot. Data streams (user avatars, order records) flow like asteroids into the black hole. Golden armor ripples from gravitational pull. Guoke plants staff in ground to stabilize. Dust and code particles swirl around him. Camera slowly pulls back to reveal the scale of the black hole. 5 seconds.</div>
+</div>
+
+<!-- 镜头06 -->
+<h2>镜头06 · 火眼金睛·引用链 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>过客瞳孔亮金 → 看到对象引用链形成闭环 → 发现冗余指向<br>
+  <b>角色：</b>过客（金甲形态）
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">可灵 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">POV shot. Golden wireframe lines appear, forming a complex web of object reference chains. Orange arrows form closed loops, each pointing to a circular node. Chains are tangled and redundant. Slowly pan across the reference web. Golden reflection in Guoke's eye at bottom corner. 5 seconds.</div>
+</div>
+
+<!-- 镜头07 -->
+<h2>镜头07 · 第一次反击 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>过客挥棒敲击错误引用链 → 黑洞腹部出现裂痕<br>
+  <b>角色：</b>过客（金甲形态）、内存黑洞王
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">可灵 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Side angle. Guoke swings golden staff sideways, striking three glowing reference chains. Impact point sparks golden light, chains visibly break. Memory Black Hole King reacts in shock, first crack appears across his abdominal black hole. Golden light seeps through the crack. Motion blur on staff swing. 5 seconds.</div>
+</div>
+
+<!-- 镜头08 -->
+<h2>镜头08 · 内存重构完成 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>金箍棒插入黑洞 → 黑色漩涡变绿色数据流 → 数据回归原位<br>
+  <b>角色：</b>过客（金甲形态）、内存黑洞王（压缩中）
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">可灵 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Guoke raises golden staff high. Black hole transforms into organized green data streams flowing outward. Memory Black Hole King shrinks rapidly, being compressed into a small cache file on the ground. Previously swallowed data returns to original positions in green streams. Restoration effect, 5 seconds.</div>
+</div>
+
+<hr>
+
+<!-- ==================== 章节三：跳出循环 ==================== -->
+<h2>章节三 · 筋斗云·跳出死循环 <span class="section-tag section-loop">镜头9-13</span></h2>
+
+<!-- 镜头09 -->
+<h2>镜头09 · 死循环迷宫坠落 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>地面裂开 → 过客坠入重复代码迷宫 → 被死循环妖包围<br>
+  <b>角色：</b>过客（金甲形态）、死循环妖
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">可灵 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Top-down shot. Guoke is already in the maze, surrounded by repeating code walls. Infinite Loop Demon clones in the maze edges, all with same wide grin, red ERROR signs raised, charging toward him. Guoke grips staff, ready to fight. Camera slowly pulls up to reveal the scope of the maze. "RETRY" text cycles on walls. 5 seconds.</div>
+</div>
+
+<!-- 镜头10 -->
+<h2>镜头10 · 分身压迫 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>过客被无数分身包围 → 金甲出现裂纹 → 寻找出口<br>
+  <b>角色：</b>过客（金甲形态）、死循环妖
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">可灵 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Medium shot. Clones press inward from all sides, surrounding Guoke. Small cracks appear on his golden armor. He breathes heavily, staff held defensively across his body. Camera slowly circles around him. Eyes darting, searching for an exit. Clones grin identically, closing in. 5 seconds.</div>
+</div>
+
+<!-- 镜头11 -->
+<h2>镜头11 · 跳出循环的决定 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>过客看见远处金色云团 → 决定跳出循环<br>
+  <b>角色：</b>过客（金甲形态）、小七
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">可灵 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Close-up on Guoke's face. He looks up and into the distance. Xiao Qi on his shoulder also looks up, pointing with her tiny hand. Rack focus: maze walls and clones blur in foreground, golden cloud of computing nodes sharpens in distance. Expression shifts from worry to determination. 5 seconds.</div>
+</div>
+
+<!-- 镜头12 -->
+<h2>镜头12 · 筋斗云切换节点 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>筋斗云聚合托起过客 → 冲出迷宫顶部<br>
+  <b>角色：</b>过客（金甲形态）
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">可灵 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Low angle looking up. Golden cloud forms beneath Guoke's feet, lifting him rapidly. He bursts through the maze top, trailing a golden light arc. Maze shrinks below, clones look up helplessly. Sky above opens into golden code space. Guoke stands on cloud, staff in hand. Ascending shot, 5 seconds.</div>
+</div>
+
+<!-- 镜头13 -->
+<h2>镜头13 · 写入终止条件 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>过客从云端俯冲 → 写入终止条件 → 全部分身冻结<br>
+  <b>角色：</b>过客（金甲形态）、死循环妖
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">可灵 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Guoke stands in the center with his staff embedded in the loop core. Golden text "IF SUCCESS = TRUE, THEN BREAK" writes itself into the code, glowing brighter. All Infinite Loop clones freeze mid-action, then layer over each other, collapsing into a single small error dialog box. Golden light spreads from the core outward. Camera slowly pulls back. 5 seconds.</div>
+</div>
+
+<hr>
+
+<!-- ==================== 章节四：权限追踪 ==================== -->
+<h2>章节四 · 火眼金睛·权限追踪 <span class="section-tag section-permission">镜头14-18</span></h2>
+
+<!-- 镜头14 -->
+<h2>镜头14 · 权限黑域降临 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>黑雾遮蔽代码世界 → 用户头像变问号 → 过客协议标识闪烁<br>
+  <b>角色：</b>过客（金甲形态）、权限魅影
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">可灵 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Black mist encroaches from all sides, consuming the green code world. User avatars in background turn into question marks one by one. "大圣协议" symbol on Guoke's chest flickers between gold and red. Permission Phantom's shifting eyes appear in the mist behind. Camera slowly pushes in. 5 seconds.</div>
+</div>
+
+<!-- 镜头15 -->
+<h2>镜头15 · 火眼金睛开启 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>过客闭眼 → 金色光线从眼缝亮起 → 黑域被切成日志时间线<br>
+  <b>角色：</b>过客（金甲形态）
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">可灵 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Extreme close-up on Guoke's face. Eyes close slowly. Golden light builds from between eyelids, becoming brighter. Light rays slice through the black mist, revealing log timeline streams. Three abnormal time points glow red: 01:47, 01:52, 01:59. Golden light illuminates his face. 5 seconds.</div>
+</div>
+
+<!-- 镜头16 -->
+<h2>镜头16 · 锁定异常路径 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>时间线追踪到三个异常调用 → 汇入同一台隐形服务器<br>
+  <b>角色：</b>过客（金甲形态）、权限魅影
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">可灵 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Low-angle shot, camera stays fixed. Guoke stands in the foreground holding the staff. Golden code streams from the staff tip extend forward and pulse brighter. The three red countdown timers flicker and tick down. The distant invisible server's outline glows, becoming more visible. A dark mist silhouette drifts across the upper background. 5 seconds, static shot with subtle glow and flicker animations.</div>
+</div>
+
+<!-- 镜头17 -->
+<h2>镜头17 · 权限追踪 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>金色锁链缠住权限魅影 → 从隐藏服务器中拖出<br>
+  <b>角色：</b>过客（金甲形态）、权限魅影
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">可灵 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Golden code chains shoot from Guoke's staff, wrapping around the phantom. Chains pull tight, dragging the phantom out of the invisible server. The phantom's mist body stretches and distorts, revealing stolen permission strings and audit logs. Guoke pulls chains, expression focused. 5 seconds.</div>
+</div>
+
+<!-- 镜头18 -->
+<h2>镜头18 · 第三个Bug退出 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>黑域重新亮起 → 权限魅影被压缩为透明日志链 → 三个绿色状态点亮<br>
+  <b>角色：</b>过客（金甲形态）
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">可灵 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Black mist clears completely, code world brightens. Phantom compresses into a single transparent audit log chain floating in air. Three green status indicators light up in sequence across the top of frame. Guoke stands center, golden armor glowing, staff resting on his shoulder. Clean data flows around. 5 seconds.</div>
+</div>
+
+<hr>
+
+<!-- ==================== 章节五：合体危机 ==================== -->
+<h2>章节五 · 三魔合体·终极Boss <span class="section-tag section-final">镜头19-21</span></h2>
+
+<!-- 镜头19 -->
+<h2>镜头19 · 胜利假象 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>三个Bug文件悬浮 → 突然震动 → 红色脉冲出现<br>
+  <b>角色：</b>过客（金甲形态）、小七
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">可灵 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Medium close-up. Three compressed Bug files float in front of Guoke, peaceful. Suddenly they vibrate violently, error codes connecting between them. Guoke reacts with alarm. Xiao Qi on his shoulder bristles. Background flickers with red pulse light. Calm interrupted by warning. 5 seconds.</div>
+</div>
+
+<!-- 镜头20 -->
+<h2>镜头20 · 根目录裂开 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>天宫底部红色裂缝蔓延 → 三个文件被吸入 → 天空变红<br>
+  <b>角色：</b>过客（金甲形态）、小七
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">可灵 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Low angle looking up at the Root Directory palace. Massive red crack splits open at the base, spreading upward like veins across the sky. Three Bug files are sucked into the crack. Sky turns from blue to deep red. Guoke and Xiao Qi in foreground, looking up in horror. 5 seconds.</div>
+</div>
+
+<!-- 镜头21 -->
+<h2>镜头21 · 终极Bug魔王上线 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>三魔融合成终极魔王 → 过客被气浪掀飞 → 金甲开裂，悬念收尾<br>
+  <b>角色：</b>过客（金甲形态，裂纹）、终极Bug魔王
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">可灵 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Giant Ultimate Bug Demon King materializes, red "ROOT" glowing on chest, massive hand raises. Shockwave blasts outward. Guoke pushed back, golden armor heavily cracked, but gold still glows in his eyes as he looks up defiantly. Xiao Qi grabbed by dark data hand in midground. Red alert text appears. 5 seconds.</div>
+</div>
+
+</body>
+</html>

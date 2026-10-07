@@ -1,0 +1,45 @@
+{
+  "project": "hedgehog_test_sample",
+  "note": "验收小样：刺猬单角色 + 2 场景（草地→河），验证 Phantom 跨镜头角色一致性。开机后由 run_sample.py 编排。",
+  "character": {
+    "hero": "hedgehog_hero_cute2.png",
+    "ref_pool": [
+      "hedgehog_hero_cute2.png",
+      "c1_output/C1_9grid_00001_.png",
+      "c1_output/C1_9grid_00002_.png",
+      "c1_output/C1_9grid_00003_.png"
+    ]
+  },
+  "global": {
+    "width": 832,
+    "height": 480,
+    "fps": 16,
+    "steps": 30,
+    "cfg": 5.0,
+    "phantom_cfg": 5.0,
+    "frames": 33
+  },
+  "shots": [
+    {
+      "id": "s1_grass",
+      "scene": "草地打滚",
+      "refs": ["hedgehog_hero_cute2.png", "c1_output/C1_9grid_00001_.png", "c1_output/C1_9grid_00002_.png"],
+      "prompt": "皮克斯3D动画风格，一只圆滚滚的可爱小刺猬在阳光明媚的绿草地上快乐地打滚，草地柔软，光线温暖，角色身份证与参考图一致",
+      "neg": "blurry, low quality, deformed, extra limbs, watermark, text, static, human"
+    },
+    {
+      "id": "s2_river_fall",
+      "scene": "掉进河里",
+      "refs": ["hedgehog_hero_cute2.png", "c1_output/C1_9grid_00001_.png", "c1_output/C1_9grid_00003_.png"],
+      "prompt": "皮克斯3D动画风格，同一只小刺猬走到小河边脚一滑，扑通掉进清澈的河里，溅起水花，角色身份证与参考图一致",
+      "neg": "blurry, low quality, deformed, extra limbs, watermark, text, static, human"
+    },
+    {
+      "id": "s3_catch_shrimp",
+      "scene": "抓虾",
+      "refs": ["hedgehog_hero_cute2.png", "c1_output/C1_9grid_00002_.png", "c1_output/C1_9grid_00003_.png"],
+      "prompt": "皮克斯3D动画风格，同一只小刺猬在浅浅的河水里用爪子小心翼翼地抓住一只小虾，水花四溅，角色身份证与参考图一致",
+      "neg": "blurry, low quality, deformed, extra limbs, watermark, text, static, human"
+    }
+  ]
+}

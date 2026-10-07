@@ -1,0 +1,262 @@
+{
+  "1": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "sd_xl_base_1.0.safetensors"
+    },
+    "_meta": {
+      "title": "加载 SDXL 基座"
+    }
+  },
+  "8": {
+    "class_type": "LoraLoader",
+    "inputs": {
+      "lora_name": "Canopus-Pixar-Art.safetensors",
+      "strength_model": 0.8,
+      "strength_clip": 0.8,
+      "model": [
+        "80",
+        0
+      ],
+      "clip": [
+        "80",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Canopus Pixar LoRA"
+    }
+  },
+  "11": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "hedgehog_hero.png"
+    },
+    "_meta": {
+      "title": "IP-Adapter 参照图（最满意的刺猬）"
+    }
+  },
+  "10": {
+    "class_type": "IPAdapterFaceID",
+    "inputs": {
+      "model": [
+        "8",
+        0
+      ],
+      "ipadapter": [
+        "90",
+        0
+      ],
+      "image": [
+        "11",
+        0
+      ],
+      "weight": 1.0,
+      "weight_faceidv2": 1.0,
+      "weight_type": "linear",
+      "combine_embeds": "concat",
+      "start_at": 0.0,
+      "end_at": 1.0,
+      "embeds_scaling": "V only",
+      "insightface": [
+        "91",
+        0
+      ],
+      "clip_vision": [
+        "92",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "施加 FaceID Plus v2（锁脸）"
+    }
+  },
+  "92": {
+    "class_type": "CLIPVisionLoader",
+    "inputs": {
+      "clip_name": "clip_vision_g.safetensors"
+    },
+    "_meta": {
+      "title": "CLIP Vision 编码器"
+    }
+  },
+  "12": {
+    "class_type": "ControlNetLoader",
+    "inputs": {
+      "control_net_name": "OpenPoseXL2.safetensors"
+    },
+    "_meta": {
+      "title": "ControlNet OpenPose"
+    }
+  },
+  "3": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "realistic, photo, lowres, bad anatomy, extra limbs, deformed, blurry, watermark, text, signature, human, person, boy, girl, child, dark, scary, multiple animals, duplicate, merged, overlapping, messy, rabbit, cat, dog, bear",
+      "clip": [
+        "8",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "负提示词"
+    }
+  },
+  "4": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 1024,
+      "height": 1152,
+      "batch_size": 1
+    },
+    "_meta": {
+      "title": "空 Latent 1024x1152"
+    }
+  },
+  "21": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "01_front_neutral.png"
+    },
+    "_meta": {
+      "title": "姿势骨架 01_front_neutral"
+    }
+  },
+  "31": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "pixar style, disney pixar, 3d cartoon character, a cute baby hedgehog, round plump body, small soft quills on back, tiny legs, large sparkling glossy eyes, small black button nose, smooth clay skin between quills, solid pastel light blue clean background, full body shot, centered, soft studio lighting, octane render, 8k uhd, masterpiece, best quality, calm neutral expression, front facing viewer",
+      "clip": [
+        "8",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "正提示词 1（calm neutral expre）"
+    }
+  },
+  "41": {
+    "class_type": "ControlNetApplyAdvanced",
+    "inputs": {
+      "positive": [
+        "31",
+        0
+      ],
+      "negative": [
+        "3",
+        0
+      ],
+      "control_net": [
+        "12",
+        0
+      ],
+      "image": [
+        "21",
+        0
+      ],
+      "strength": 0.8,
+      "start_percent": 0.0,
+      "end_percent": 1.0
+    },
+    "_meta": {
+      "title": "ControlNet 1"
+    }
+  },
+  "51": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 246813579,
+      "steps": 30,
+      "cfg": 6.0,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1.0,
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "41",
+        0
+      ],
+      "negative": [
+        "41",
+        1
+      ],
+      "latent_image": [
+        "4",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "KSampler 1"
+    }
+  },
+  "61": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "51",
+        0
+      ],
+      "vae": [
+        "1",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "VAE 1"
+    }
+  },
+  "71": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "61",
+        0
+      ],
+      "filename_prefix": "01_front_neutral"
+    },
+    "_meta": {
+      "title": "保存 1"
+    }
+  },
+  "80": {
+    "class_type": "LoraLoader",
+    "inputs": {
+      "lora_name": "ip-adapter-faceid-plusv2_sdxl_lora.safetensors",
+      "strength_model": 0.8,
+      "strength_clip": 0.0,
+      "model": [
+        "1",
+        0
+      ],
+      "clip": [
+        "1",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "FaceID Plus v2 LoRA (model only)"
+    }
+  },
+  "90": {
+    "class_type": "IPAdapterModelLoader",
+    "inputs": {
+      "ipadapter_file": "ip-adapter-faceid-plusv2_sdxl.bin"
+    },
+    "_meta": {
+      "title": "加载 FaceID Plus v2 权重 .bin"
+    }
+  },
+  "91": {
+    "class_type": "IPAdapterInsightFaceLoader",
+    "inputs": {
+      "provider": "CUDA",
+      "model_name": "antelopev2"
+    },
+    "_meta": {
+      "title": "InsightFace 加载（人脸嵌入）"
+    }
+  }
+}

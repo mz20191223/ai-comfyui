@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>分镜首尾帧提示词 — 镜头1-4</title>
+<style>
+  :root {
+    --bg: #0d0d12;
+    --panel: #16161e;
+    --border: #2a2a35;
+    --accent: #d4a017;
+    --accent-glow: #f0c040;
+    --text: #e0e0e8;
+    --text-dim: #8888a0;
+    --code-bg: #1a1a24;
+    --red: #e84545;
+    --green: #4ec970;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
+    line-height: 1.7;
+    padding: 40px 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 28px;
+    color: var(--accent-glow);
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 12px;
+    margin-bottom: 8px;
+  }
+  .subtitle { color: var(--text-dim); font-size: 14px; margin-bottom: 32px; }
+  h2 {
+    font-size: 22px;
+    color: var(--accent);
+    margin: 36px 0 16px;
+    padding-left: 14px;
+    border-left: 4px solid var(--accent);
+  }
+  h3 {
+    font-size: 17px;
+    color: var(--text);
+    margin: 20px 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  h3 .tag {
+    font-size: 12px;
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  .tag-first { background: rgba(78,201,112,0.15); color: var(--green); border: 1px solid rgba(78,201,112,0.3); }
+  .tag-last { background: rgba(232,69,69,0.15); color: var(--red); border: 1px solid rgba(232,69,69,0.3); }
+  .scene-desc {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 8px 0 12px;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .scene-desc b { color: var(--text); }
+  .prompt-box {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0;
+    margin: 8px 0 24px;
+    overflow: hidden;
+  }
+  .prompt-header {
+    background: rgba(212,160,23,0.08);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 16px;
+    font-size: 13px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .prompt-header .platform { color: var(--accent); font-weight: 600; }
+  .prompt-body {
+    padding: 14px 16px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 13px;
+    color: #c8c8d8;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.6;
+  }
+  .copy-btn {
+    background: rgba(212,160,23,0.12);
+    border: 1px solid rgba(212,160,23,0.3);
+    color: var(--accent-glow);
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+  }
+  .copy-btn:hover { background: rgba(212,160,23,0.25); }
+  .platform-guide {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 16px 0;
+  }
+  .platform-guide h4 {
+    color: var(--accent-glow);
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+  .platform-guide ol { padding-left: 20px; }
+  .platform-guide li { margin: 6px 0; font-size: 14px; }
+  .platform-guide code {
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 13px;
+    color: var(--accent-glow);
+  }
+  .ref-note {
+    background: rgba(212,160,23,0.06);
+    border: 1px dashed rgba(212,160,23,0.3);
+    border-radius: 8px;
+    padding: 12px 18px;
+    margin: 16px 0;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .ref-note b { color: var(--accent); }
+  .ref-upload {
+    background: rgba(78,201,112,0.08);
+    border: 1px solid rgba(78,201,112,0.25);
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin: 8px 0 12px;
+    font-size: 14px;
+    color: var(--green);
+  }
+  .ref-upload b { color: #6dd88a; }
+  .ref-upload code {
+    background: rgba(78,201,112,0.12);
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 13px;
+    color: #8de8a0;
+  }
+  hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+</style>
+</head>
+<body>
+
+<h1>分镜首尾帧提示词</h1>
+<p class="subtitle">《大圣协议：程序员终极幻想》第1集 · 镜头1-4 | 配合角色参考图使用</p>
+
+<!-- ========== 平台使用指南 ========== -->
+<h2>各平台使用方法</h2>
+
+<div class="platform-guide">
+  <h4>Midjourney V7</h4>
+  <ol>
+    <li>先将 <code>过客_角色参考图_标准版.jpg</code> 上传到 Discord，获取图片 URL</li>
+    <li>在提示词末尾添加参数：<code>--cref [图片URL] --cw 80 --ar 9:16 --v 7 --style raw</code></li>
+    <li><code>--cw 80</code> = 角色权重80（兼顾角色锁定与场景自由度，范围0-100）</li>
+    <li>如角色还原不够，改为 <code>--cw 100</code>；如场景被角色图干扰太多，改为 <code>--cw 60</code></li>
+  </ol>
+</div>
+
+<div class="platform-guide">
+  <h4>GPT-Image-2 / ChatGPT</h4>
+  <ol>
+    <li>在对话中上传 <code>过客_角色参考图_标准版.jpg</code> + <code>过客_侧面背面_补充参考.jpg</code>（2-4张最佳）</li>
+    <li>直接粘贴下方提示词</li>
+    <li>在提示词前加上一句：<code>"请严格保持参考图中角色的面部特征、发型、服装一致，仅改变场景和动作。"</code></li>
+  </ol>
+</div>
+
+<div class="platform-guide">
+  <h4>即梦 AI（Doubao Seedream 5.0）</h4>
+  <ol>
+    <li>进入图片生成 → 上传 <code>过客_角色参考图_标准版.jpg</code> 作为角色参考</li>
+    <li>勾选「角色一致性」选项</li>
+    <li>选择画幅 <code>9:16 竖屏</code></li>
+    <li>粘贴下方提示词（中英文均可，即梦对中文理解优秀）</li>
+  </ol>
+</div>
+
+<div class="platform-guide">
+  <h4>ComfyUI（IP-Adapter）</h4>
+  <ol>
+    <li>加载 IP-Adapter 工作流，在 Apply IP-Adapter 节点上传 <code>过客_角色参考图_标准版.jpg</code>（正面）和 <code>过客_侧面背面_补充参考.jpg</code>（侧面）</li>
+    <li>IP-Adapter 权重建议 <code>0.7</code>（范围0-1，越高角色越像参考图）</li>
+    <li>在 CLIP Text Encode 节点粘贴下方英文提示词</li>
+    <li>可叠加 ControlNet（Depth/Canny）控制构图</li>
+    <li>如效果不够稳，用角色图训练 LoRA 后叠加使用</li>
+  </ol>
+</div>
+
+<div class="ref-note">
+  <b>角色锁定关键词（所有平台通用）</b>：在每条提示词中已内置以下角色特征锚点——"28-year-old East Asian male, square jawline, gaunt face, prominent dark circles under eyes (purple-brown discoloration), short messy black hair with M-shaped hairline, narrow inner double eyelids with slight downward eye corners, thin lips, dark charcoal-gray hoodie (zipper half open, white t-shirt), black lanyard with white employee ID badge showing 过客 and ByteFly BF-1024, slim build, slight forward hunch"。这些细节与参考图严格对应，确保跨平台一致性。
+</div>
+
+<hr>
+
+<!-- ========== 镜头1 ========== -->
+<h2>镜头1 ｜ 全景 · 深夜办公室故障爆发</h2>
+<div class="scene-desc">
+  <b>场景：</b>内景 · 互联网公司开放办公区 · 深夜<br>
+  <b>景别：</b>全景 / 快切<br>
+  <b>画面：</b>空荡办公室只亮过客一盏工位灯，窗外城市沉睡，屏幕突然从绿色变红色，弹出 P0级故障 / 数据丢失风险87% / 系统预计全面崩溃03:00:00
+</div>
+
+<div class="ref-upload"><b>📸 上传参考图（GPT-Image-2）：</b><code>过客_角色参考图_GPT版.jpg</code></div>
+
+<h3>首帧 <span class="tag tag-first">FIRST FRAME</span></h3> His face: square jawline, gaunt from exhaustion, prominent dark circles under eyes (purple-brown discoloration), short messy black hair with M-shaped hairline, narrow inner double eyelids, thin lips. Wearing dark charcoal-gray hoodie (zipper half open, white t-shirt), black lanyard with white employee ID badge "过客 ByteFly BF-1024". His computer monitor currently shows calm green status. Cold blue-white monitor glow on his face. Lonely, heavy midnight atmosphere. Photorealistic CGI, dark tech-noir, cinematic lighting, high detail, 9:16 vertical composition.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header">
+    <span class="platform">Midjourney 专用（末尾追加参数）</span>
+    <button class="copy-btn" onclick="copyPrompt(this)">复制</button>
+  </div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16 cinematic shot, wide angle. An empty open-plan internet company office at 2 AM deep night. Only ONE desk lamp is lit at a single workstation in the center. The city outside floor-to-ceiling windows is dark and sleeping. A 28-year-old East Asian male programmer sits alone at this desk, hunched over keyboard, tired and quiet. His face: square jawline, gaunt from exhaustion, prominent dark circles under eyes (purple-brown discoloration), short messy black hair with M-shaped hairline, narrow inner double eyelids, thin lips. Wearing dark charcoal-gray hoodie (zipper half open, white t-shirt), black lanyard with white employee ID badge "过客 ByteFly BF-1024". His computer monitor currently shows calm green status. Cold blue-white monitor glow on his face. Lonely, heavy midnight atmosphere. Photorealistic CGI, dark tech-noir, cinematic lighting, high detail --cref [粘贴角色参考图URL] --cw 80 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<h3>尾帧 <span class="tag tag-last">LAST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header">
+    <span>通用提示词</span>
+    <button class="copy-btn" onclick="copyPrompt(this)">复制</button>
+  </div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression.
+
+Vertical 9:16 cinematic shot, wide angle. An empty open-plan office at 2 AM. Only one desk lamp lit. The SAME 28-year-old East Asian male programmer has just jolted upright in his chair, eyes wide in shock. Face: square jawline, gaunt, prominent dark circles under eyes (purple-brown), short messy black hair with M-shaped hairline, narrow inner double eyelids wide open in alarm, thin lips parted. Dark charcoal-gray hoodie (zipper half open, white t-shirt), black lanyard with white ID badge "过客 ByteFly BF-1024". His computer monitor has suddenly turned BLINDING RED. Screen displays large red alert text: "P0级故障 订单服务异常" at top, "数据丢失风险 87%" in center, "系统预计全面崩溃 03:00:00" at bottom. Red alert waveform graph fills upper screen. Intense red light floods his face from below. His hands lifting off desk in shock. Dark office background, dramatic red glow contrast. Photorealistic CGI, dark tech-noir, cinematic lighting, high detail, urgency and danger, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header">
+    <span class="platform">Midjourney 专用</span>
+    <button class="copy-btn" onclick="copyPrompt(this)">复制</button>
+  </div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16 cinematic shot, wide angle. An empty open-plan office at 2 AM. Only one desk lamp lit. A 28-year-old East Asian male programmer has just jolted upright in his chair, eyes wide in shock. Face: square jawline, gaunt, prominent dark circles under eyes (purple-brown), short messy black hair with M-shaped hairline, narrow inner double eyelids wide open in alarm, thin lips parted. Dark charcoal-gray hoodie (zipper half open, white t-shirt), black lanyard with white ID badge "过客 ByteFly BF-1024". His computer monitor has suddenly turned BLINDING RED. Screen displays large red alert text "P0级故障 订单服务异常", "数据丢失风险 87%", "系统预计全面崩溃 03:00:00". Red alert waveform graph fills upper screen. Intense red light floods his face from below. His hands lifting off desk in shock. Dark office background, dramatic red glow. Photorealistic CGI, dark tech-noir, cinematic lighting, high detail --cref [粘贴角色参考图URL] --cw 80 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<hr>
+
+<!-- ========== 镜头2 ========== -->
+<h2>镜头2 ｜ 特写 · 群聊背锅</h2>
+<div class="scene-desc">
+  <b>场景：</b>同上，过客工位<br>
+  <b>景别：</b>特写<br>
+  <b>画面：</b>手机群聊消息疯狂刷新——"谁动了线上？""最后一次提交是过客。""又是你？马上给结果！"过客的手停在键盘上
+</div>
+
+<h3>首帧 <span class="tag tag-first">FIRST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header">
+    <span>通用提示词</span>
+    <button class="copy-btn" onclick="copyPrompt(this)">复制</button>
+  </div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression.
+
+Vertical 9:16 cinematic close-up shot, filmed from behind-and-side of the character. A 28-year-old East Asian male programmer is HOLDING his smartphone in his LEFT hand, looking down at the screen. His RIGHT hand is visible resting on a mechanical keyboard, fingers frozen mid-air, not typing. We can see the phone screen from over his shoulder — the screen shows a workplace group chat app, with the first message bubble just appearing: "谁动了线上？" from a contact labeled "产品经理". Cold blue-white phone screen glow illuminates his hand and jaw area. Dark office background with dim monitor code. Tense, oppressive, "called out" atmosphere. Photorealistic CGI, dark tech-noir, cinematic lighting, shallow depth of field on phone screen, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header">
+    <span class="platform">Midjourney 专用</span>
+    <button class="copy-btn" onclick="copyPrompt(this)">复制</button>
+  </div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16 cinematic close-up, filmed from behind-and-side angle. A 28-year-old East Asian male programmer HOLDING his smartphone in LEFT hand, looking down at screen. RIGHT hand resting on mechanical keyboard, fingers frozen, not typing. We see phone screen from over his shoulder — workplace group chat with first bubble appearing: "谁动了线上？" from "产品经理". Cold blue-white phone screen glow on hand and jaw. Dark background with dim monitor code. Tense oppressive atmosphere. Photorealistic CGI, dark tech-noir, cinematic lighting, shallow depth of field --cref [粘贴角色参考图URL] --cw 60 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<h3>尾帧 <span class="tag tag-last">LAST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header">
+    <span>通用提示词</span>
+    <button class="copy-btn" onclick="copyPrompt(this)">复制</button>
+  </div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression.
+
+Vertical 9:16 cinematic close-up, filmed from behind-and-side of the character. The SAME 28-year-old East Asian male programmer is still HOLDING his smartphone in his LEFT hand, looking down at the screen. His RIGHT hand remains FROZEN above the keyboard, thumb hovering, not replying, tendons showing subtle tension. We can see the phone screen from over his shoulder — the group chat is now FILLED with multiple message bubbles stacked: "谁动了线上？", "最后一次提交是过客。" from "值班同事", and the latest message "又是你？马上给结果！" from "产品经理" sits dead center with a large accusatory question mark. Cold blue-white screen glow on his hand and jaw. Dark office background. Weary, suppressed, "used to being suspected" atmosphere. Photorealistic CGI, dark tech-noir, cinematic lighting, shallow depth of field, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header">
+    <span class="platform">Midjourney 专用</span>
+    <button class="copy-btn" onclick="copyPrompt(this)">复制</button>
+  </div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16 cinematic close-up, filmed from behind-and-side angle. A 28-year-old East Asian male programmer HOLDING smartphone in LEFT hand, looking down at screen. RIGHT hand FROZEN above keyboard, thumb hovering, not replying, tendons tense. We see phone screen from over his shoulder — group chat FILLED with message bubbles: "谁动了线上？", "最后一次提交是过客。", "又是你？马上给结果！" with large question mark in center. Cold blue-white screen glow on hand and jaw. Dark office background. Weary suppressed atmosphere. Photorealistic CGI, dark tech-noir, cinematic lighting, shallow depth of field --cref [粘贴角色参考图URL] --cw 60 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<hr>
+
+<!-- ========== 镜头3 ========== -->
+<h2>镜头3 ｜ 近景 · 电话与倒计时</h2>
+<div class="scene-desc">
+  <b>场景：</b>同上，过客工位<br>
+  <b>景别：</b>近景 / 中近景，侧前方45度<br>
+  <b>画面：</b>林岚电话打来，过客一手接电话一手打开终端。屏幕右上角倒计时"00:27:00"。过客看向倒计时，林岚说"回滚已经失败两次了。还有二十七分钟，找根因。"
+</div>
+
+<h3>首帧 <span class="tag tag-first">FIRST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header">
+    <span>通用提示词</span>
+    <button class="copy-btn" onclick="copyPrompt(this)">复制</button>
+  </div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression.
+
+Vertical 9:16 cinematic medium close-up, shot from side-front 45-degree angle. A 28-year-old East Asian male programmer at a dark office desk at night. He has just picked up a smartphone and pressed it to his ear with his left hand, while his right hand reaches toward the keyboard to open a terminal window. Face: square jawline, gaunt, prominent dark circles under eyes (purple-brown discoloration), short messy black hair with M-shaped hairline, narrow inner double eyelids, thin lips, tense focused expression. Dark charcoal-gray hoodie (zipper half open, white t-shirt), black lanyard with white ID badge "过客 ByteFly BF-1024". The computer terminal window is just beginning to open on the monitor. Cold blue-white monitor light. Dark office background. Urgent, time-pressured atmosphere. Photorealistic CGI, dark tech-noir, cinematic lighting, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header">
+    <span class="platform">Midjourney 专用</span>
+    <button class="copy-btn" onclick="copyPrompt(this)">复制</button>
+  </div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16 cinematic medium close-up, side-front 45 degree angle. A 28-year-old East Asian male programmer at dark office desk at night. Left hand holds smartphone to ear, right hand reaches toward keyboard to open terminal. Face: square jawline, gaunt, prominent dark circles under eyes (purple-brown), short messy black hair M-shaped hairline, narrow inner double eyelids, thin lips, tense focused expression. Dark charcoal-gray hoodie (zipper half open white t-shirt), black lanyard with white ID badge "过客 ByteFly BF-1024". Terminal window just opening on monitor. Cold blue-white light. Dark office. Urgent atmosphere. Photorealistic CGI, dark tech-noir, cinematic lighting --cref [粘贴角色参考图URL] --cw 80 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<h3>尾帧 <span class="tag tag-last">LAST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header">
+    <span>通用提示词</span>
+    <button class="copy-btn" onclick="copyPrompt(this)">复制</button>
+  </div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression.
+
+Vertical 9:16 cinematic medium close-up, side-front 45-degree angle. A 28-year-old East Asian male programmer at a dark office desk, now fully engaged in crisis mode. Left hand firmly holds phone to ear (on a call), right hand rapidly typing on keyboard with motion-blurred fingers. Face: square jawline, gaunt, prominent dark circles under eyes (purple-brown), short messy black hair with M-shaped hairline, narrow inner double eyelids, thin lips — expression is intensely focused, eyes locked on the screen. Dark charcoal-gray hoodie, black lanyard with white ID badge "过客 ByteFly BF-1024". The terminal screen is fully open showing command-line text. In the upper-right corner of the monitor, a countdown timer glows red: "00:27:00". Cold blue-white monitor light with red timer glow. Dark office background. High-pressure, racing-against-time atmosphere. Photorealistic CGI, dark tech-noir, cinematic lighting, slight motion blur on typing hand, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header">
+    <span class="platform">Midjourney 专用</span>
+    <button class="copy-btn" onclick="copyPrompt(this)">复制</button>
+  </div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16 cinematic medium close-up, side-front 45 degree angle. 28-year-old East Asian male programmer at dark office desk, crisis mode. Left hand holds phone to ear, right hand rapidly typing with motion-blurred fingers. Face: square jawline, gaunt, prominent dark circles (purple-brown), short messy black hair M-shaped hairline, narrow inner double eyelids, thin lips, intensely focused expression. Dark charcoal-gray hoodie, black lanyard white ID badge "过客 ByteFly BF-1024". Terminal screen fully open with command lines. Upper-right corner countdown timer glows red "00:27:00". Cold blue-white monitor light with red timer glow. Dark office. High-pressure atmosphere. Photorealistic CGI, dark tech-noir, cinematic lighting, motion blur on hand --cref [粘贴角色参考图URL] --cw 80 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<hr>
+
+<!-- ========== 镜头4 ========== -->
+<h2>镜头4 ｜ 插入特写 · 回滚失败</h2>
+<div class="scene-desc">
+  <b>场景：</b>同上，过客工位键盘与终端<br>
+  <b>景别：</b>插入特写，俯拍键盘→摇到终端<br>
+  <b>画面：</b>过客敲下回滚命令，终端跳出"ROLLBACK FAILED / MEMORY USAGE: 99.9%"。内存曲线像张开的黑嘴，向数据图标扑去
+</div>
+
+<h3>首帧 <span class="tag tag-first">FIRST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header">
+    <span>通用提示词</span>
+    <button class="copy-btn" onclick="copyPrompt(this)">复制</button>
+  </div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression.
+
+Vertical 9:16 cinematic insert close-up, overhead shot looking down at a keyboard and computer terminal in a dark office. A male hand (28-year-old, callused programmer fingers, black wristwatch) is pressing down firmly on the Enter key, executing a command. The terminal screen shows white text on black background: "EXECUTING ROLLBACK..." with a blinking cursor. The other hand is poised above the keyboard. The monitor glow is cold blue-white, casting light on the hands and keycaps. Mechanical keyboard with visible keycap texture. Dark office background. Tense, focused, "one shot to fix it" atmosphere. Photorealistic CGI, dark tech-noir, cinematic lighting, shallow depth of field on hand and Enter key, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header">
+    <span class="platform">Midjourney 专用</span>
+    <button class="copy-btn" onclick="copyPrompt(this)">复制</button>
+  </div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16 cinematic insert close-up, overhead shot. A keyboard and computer terminal in dark office. A male hand with callused programmer fingers and black wristwatch pressing down firmly on Enter key. Terminal screen shows white text on black: "EXECUTING ROLLBACK..." with blinking cursor. Other hand poised above keyboard. Cold blue-white monitor glow on hands and keycaps. Mechanical keyboard with visible keycap texture. Dark office. Tense focused atmosphere. Photorealistic CGI, dark tech-noir, cinematic lighting, shallow depth of field --cref [粘贴角色参考图URL] --cw 50 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<h3>尾帧 <span class="tag tag-last">LAST FRAME</span></h3>
+<div class="prompt-box">
+  <div class="prompt-header">
+    <span>通用提示词</span>
+    <button class="copy-btn" onclick="copyPrompt(this)">复制</button>
+  </div>
+  <div class="prompt-body">CHARACTER LOCK: Strictly maintain the character's facial features, hairstyle, and clothing consistent with the reference image — only change scene, action, and expression.
+
+Vertical 9:16 cinematic screen close-up. A computer terminal in a dark office, now displaying two lines of RED error text: "ROLLBACK FAILED" and "MEMORY USAGE: 99.9%". The "99.9%" number is beginning to distort and warp — its edges are stretching and curling into a swirling BLACK VORTEX pattern that resembles an opening mouth, pulling surrounding terminal text, pixels, and small data icons (order icons, user avatars, cache symbols) into its center like debris caught in gravity. The programmer's trembling fingers are visible at the bottom edge of the frame, pulling back from the keyboard in shock. Red error glow dominates the screen, mixing with cold blue-white terminal light. Horror tech-noir transition, screen distortion effect, ominous and dangerous. Photorealistic CGI, dark tech-noir, cinematic lighting, high detail, 9:16 vertical.</div>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header">
+    <span class="platform">Midjourney 专用</span>
+    <button class="copy-btn" onclick="copyPrompt(this)">复制</button>
+  </div>
+  <div class="prompt-body">/imagine prompt: Vertical 9:16 cinematic screen close-up. Computer terminal in dark office displaying RED error text: "ROLLBACK FAILED" and "MEMORY USAGE: 99.9%". The 99.9% number distorting and warping, edges stretching into swirling BLACK VORTEX resembling opening mouth, pulling terminal text pixels and data icons (order icons, user avatars) into center like debris in gravity. Programmer trembling fingers visible at bottom edge pulling back from keyboard. Red error glow dominates, mixing with cold blue-white light. Horror tech-noir transition, screen distortion. Photorealistic CGI, dark tech-noir, cinematic lighting, high detail --cref [粘贴角色参考图URL] --cw 30 --ar 9:16 --v 7 --style raw</div>
+</div>
+
+<hr>
+
+<!-- ========== 提示词工程说明 ========== -->
+<h2>提示词工程说明</h2>
+
+<div class="ref-note">
+  <b>角色权重 --cw 调参建议</b><br>
+  全身/中景镜头：<code>--cw 80</code>（角色特征高度锁定）<br>
+  特写/手部镜头：<code>--cw 50-60</code>（手部细节不冲突）<br>
+  纯屏幕/无人物镜头：<code>--cw 30</code>或去掉<code>--cref</code>（避免角色图干扰场景）<br><br>
+  <b>即梦AI 调参建议</b><br>
+  角色参考权重：0.7-0.8<br>
+  风格强度：0.6<br>
+  画幅选择：9:16 竖屏<br><br>
+  <b>ComfyUI IP-Adapter 调参建议</b><br>
+  IP-Adapter 权重：0.6-0.7（全身）/ 0.4-0.5（特写）<br>
+  可叠加 ControlNet Depth 控制构图<br>
+  如角色还原不够：用角色图训练 LoRA（推荐 20-30张图，dim=32）<br><br>
+  <b>GPT-Image-2 使用技巧</b><br>
+  在提示词前加：请严格保持参考图中角色的面部特征、发型、服装一致，仅改变场景、动作和表情。<br>
+  参考图建议上传 3-4 张：正面 + 侧面 + 背面 + 角色特写
+</div>
+
+<script>
+function copyPrompt(btn) {
+  const body = btn.closest('.prompt-box').querySelector('.prompt-body');
+  const text = body.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '已复制!';
+    setTimeout(() => btn.textContent = '复制', 2000);
+  });
+}
+</script>
+
+</body>
+</html>

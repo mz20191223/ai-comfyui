@@ -1,0 +1,47 @@
+/**
+ * 单页诊断：打开一个路由，dump 控制台报错 / 失败请求 / body 内文长度。
+ * 用法：node tools/probe_page.cjs "/#/p/1/overview" [baseUrl]
+ */
+const fs = require('fs');
+const PW_CORE = process.env.PW_CORE
+  || 'C:/Users/Administrator/AppData/Roaming/npm/node_modules/@playwright/cli/node_modules/playwright-core';
+const { chromium } = require(PW_CORE);
+
+const PATH_ = process.argv[2] || '/#/';
+const BASE = process.argv[3] || 'http://127.0.0.1:5192';
+const EXE = [
+  process.env.CHROME_EXE,
+  'C:/Program Files/Google/Chrome/Application/chrome.exe',
+  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+].filter(Boolean).find((p) => fs.existsSync(p));
+
+(async () => {
+  const browser = await chromium.launch({ headless: true, executablePath: EXE });
+  const page = await (await browser.newContext({ viewport: { width: 1600, height: 950 } })).newPage();
+  const errs = [];
+  const bad = [];
+  page.on('console', (m) => { if (m.type() === 'error') errs.push(m.text().slice(0, 260)); });
+  page.on('pageerror', (e) => errs.push('PAGEERROR ' + String(e).slice(0, 260)));
+  page.on('response', (r) => { if (r.status() >= 400) bad.push(`${r.status()} ${r.url().slice(0, 140)}`); });
+
+  await page.goto(`${BASE}/?_r=${Date.now()}${PATH_}`, { waitUntil: 'load', timeout: 25000 });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForTimeout(1500);
+
+  const info = await page.evaluate(() => ({
+    bodyLen: (document.querySelector('.body')?.innerText || '').length,
+    bodyText: (document.querySelector('.body')?.innerText || '').replace(/\s+/g, ' ').slice(0, 400),
+    mainHtml: (document.querySelector('.body')?.innerHTML || '').slice(0, 900),
+  }));
+  await browser.close();
+
+  console.log('路由:', PATH_);
+  console.log('内文长度:', info.bodyLen);
+  console.log('内文:', info.bodyText || '(空)');
+  console.log('--- 控制台报错', errs.length, '条 ---');
+  errs.forEach((e) => console.log('  ' + e));
+  console.log('--- 失败请求', bad.length, '条 ---');
+  bad.forEach((b) => console.log('  ' + b));
+  console.log('--- body HTML 片段 ---');
+  console.log(info.mainHtml);
+})().catch((e) => { console.error('FATAL', e); process.exit(1); });

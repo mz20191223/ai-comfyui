@@ -1,0 +1,1082 @@
+{
+  "1": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "sd_xl_base_1.0.safetensors"
+    },
+    "_meta": {
+      "title": "加载 SDXL 基座"
+    }
+  },
+  "8": {
+    "class_type": "LoraLoader",
+    "inputs": {
+      "lora_name": "Canopus-Pixar-Art.safetensors",
+      "strength_model": 0.8,
+      "strength_clip": 0.8,
+      "model": [
+        "1",
+        0
+      ],
+      "clip": [
+        "1",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Canopus Pixar LoRA"
+    }
+  },
+  "9": {
+    "class_type": "CLIPVisionLoader",
+    "inputs": {
+      "clip_name": "clip_vision_g.safetensors"
+    },
+    "_meta": {
+      "title": "加载 CLIP Vision G（FaceID Plus v2 需要）"
+    }
+  },
+  "11": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "hedgehog_hero.png"
+    },
+    "_meta": {
+      "title": "IP-Adapter 参照图（最满意的刺猬）"
+    }
+  },
+  "10": {
+    "class_type": "IPAdapterFaceIDPlus",
+    "inputs": {
+      "ipadapter": "ip-adapter-faceid-plusv2_sdxl.bin",
+      "lora": "ip-adapter-faceid-plusv2_sdxl_lora.safetensors",
+      "model": [
+        "8",
+        0
+      ],
+      "clip_vision": [
+        "9",
+        0
+      ],
+      "image": [
+        "11",
+        0
+      ],
+      "weight": 0.9,
+      "noise": 0.0,
+      "weight_type": "linear",
+      "start_at": 0.0,
+      "end_at": 1.0,
+      "unfold_batch": false,
+      "embeds_scaling": "V only"
+    },
+    "_meta": {
+      "title": "施加 IP-Adapter FaceID Plus v2（锁定同一张脸）"
+    }
+  },
+  "12": {
+    "class_type": "ControlNetLoader",
+    "inputs": {
+      "control_net_name": "OpenPoseXL2.safetensors"
+    },
+    "_meta": {
+      "title": "ControlNet OpenPose"
+    }
+  },
+  "3": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "realistic, photo, lowres, bad anatomy, extra limbs, deformed, blurry, watermark, text, signature, human, person, boy, girl, child, dark, scary, multiple animals, duplicate, merged, overlapping, messy, rabbit, cat, dog, bear",
+      "clip": [
+        "8",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "负提示词"
+    }
+  },
+  "4": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 1024,
+      "height": 1152,
+      "batch_size": 1
+    },
+    "_meta": {
+      "title": "空 Latent 1024x1152"
+    }
+  },
+  "21": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "01_front_neutral.png"
+    },
+    "_meta": {
+      "title": "姿势骨架 01_front_neutral"
+    }
+  },
+  "31": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "pixar style, disney pixar, 3d cartoon character, a cute baby hedgehog, round plump body, small soft quills on back, tiny legs, large sparkling glossy eyes, small black button nose, smooth clay skin between quills, solid pastel light blue clean background, full body shot, centered, soft studio lighting, octane render, 8k uhd, masterpiece, best quality, calm neutral expression, front facing viewer",
+      "clip": [
+        "8",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "正提示词 1（calm neutral expre）"
+    }
+  },
+  "41": {
+    "class_type": "ControlNetApplyAdvanced",
+    "inputs": {
+      "positive": [
+        "31",
+        0
+      ],
+      "negative": [
+        "3",
+        0
+      ],
+      "control_net": [
+        "12",
+        0
+      ],
+      "image": [
+        "21",
+        0
+      ],
+      "strength": 0.8,
+      "start_percent": 0.0,
+      "end_percent": 1.0
+    },
+    "_meta": {
+      "title": "ControlNet 1"
+    }
+  },
+  "51": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 246813579,
+      "steps": 30,
+      "cfg": 6.0,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1.0,
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "41",
+        0
+      ],
+      "negative": [
+        "41",
+        1
+      ],
+      "latent_image": [
+        "4",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "KSampler 1"
+    }
+  },
+  "61": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "51",
+        0
+      ],
+      "vae": [
+        "1",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "VAE 1"
+    }
+  },
+  "71": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "61",
+        0
+      ],
+      "filename_prefix": "01_front_neutral"
+    },
+    "_meta": {
+      "title": "保存 1"
+    }
+  },
+  "22": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "02_3q_left.png"
+    },
+    "_meta": {
+      "title": "姿势骨架 02_3q_left"
+    }
+  },
+  "32": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "pixar style, disney pixar, 3d cartoon character, a cute baby hedgehog, round plump body, small soft quills on back, tiny legs, large sparkling glossy eyes, small black button nose, smooth clay skin between quills, solid pastel light blue clean background, full body shot, centered, soft studio lighting, octane render, 8k uhd, masterpiece, best quality, calm neutral expression, three quarter view turning left",
+      "clip": [
+        "8",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "正提示词 2（calm neutral expre）"
+    }
+  },
+  "42": {
+    "class_type": "ControlNetApplyAdvanced",
+    "inputs": {
+      "positive": [
+        "32",
+        0
+      ],
+      "negative": [
+        "3",
+        0
+      ],
+      "control_net": [
+        "12",
+        0
+      ],
+      "image": [
+        "22",
+        0
+      ],
+      "strength": 0.8,
+      "start_percent": 0.0,
+      "end_percent": 1.0
+    },
+    "_meta": {
+      "title": "ControlNet 2"
+    }
+  },
+  "52": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 246813579,
+      "steps": 30,
+      "cfg": 6.0,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1.0,
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "42",
+        0
+      ],
+      "negative": [
+        "42",
+        1
+      ],
+      "latent_image": [
+        "4",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "KSampler 2"
+    }
+  },
+  "62": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "52",
+        0
+      ],
+      "vae": [
+        "1",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "VAE 2"
+    }
+  },
+  "72": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "62",
+        0
+      ],
+      "filename_prefix": "02_3q_left"
+    },
+    "_meta": {
+      "title": "保存 2"
+    }
+  },
+  "23": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "03_3q_right.png"
+    },
+    "_meta": {
+      "title": "姿势骨架 03_3q_right"
+    }
+  },
+  "33": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "pixar style, disney pixar, 3d cartoon character, a cute baby hedgehog, round plump body, small soft quills on back, tiny legs, large sparkling glossy eyes, small black button nose, smooth clay skin between quills, solid pastel light blue clean background, full body shot, centered, soft studio lighting, octane render, 8k uhd, masterpiece, best quality, calm neutral expression, three quarter view turning right",
+      "clip": [
+        "8",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "正提示词 3（calm neutral expre）"
+    }
+  },
+  "43": {
+    "class_type": "ControlNetApplyAdvanced",
+    "inputs": {
+      "positive": [
+        "33",
+        0
+      ],
+      "negative": [
+        "3",
+        0
+      ],
+      "control_net": [
+        "12",
+        0
+      ],
+      "image": [
+        "23",
+        0
+      ],
+      "strength": 0.8,
+      "start_percent": 0.0,
+      "end_percent": 1.0
+    },
+    "_meta": {
+      "title": "ControlNet 3"
+    }
+  },
+  "53": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 246813579,
+      "steps": 30,
+      "cfg": 6.0,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1.0,
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "43",
+        0
+      ],
+      "negative": [
+        "43",
+        1
+      ],
+      "latent_image": [
+        "4",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "KSampler 3"
+    }
+  },
+  "63": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "53",
+        0
+      ],
+      "vae": [
+        "1",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "VAE 3"
+    }
+  },
+  "73": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "63",
+        0
+      ],
+      "filename_prefix": "03_3q_right"
+    },
+    "_meta": {
+      "title": "保存 3"
+    }
+  },
+  "24": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "04_side_left.png"
+    },
+    "_meta": {
+      "title": "姿势骨架 04_side_left"
+    }
+  },
+  "34": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "pixar style, disney pixar, 3d cartoon character, a cute baby hedgehog, round plump body, small soft quills on back, tiny legs, large sparkling glossy eyes, small black button nose, smooth clay skin between quills, solid pastel light blue clean background, full body shot, centered, soft studio lighting, octane render, 8k uhd, masterpiece, best quality, calm neutral expression, left side profile",
+      "clip": [
+        "8",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "正提示词 4（calm neutral expre）"
+    }
+  },
+  "44": {
+    "class_type": "ControlNetApplyAdvanced",
+    "inputs": {
+      "positive": [
+        "34",
+        0
+      ],
+      "negative": [
+        "3",
+        0
+      ],
+      "control_net": [
+        "12",
+        0
+      ],
+      "image": [
+        "24",
+        0
+      ],
+      "strength": 0.8,
+      "start_percent": 0.0,
+      "end_percent": 1.0
+    },
+    "_meta": {
+      "title": "ControlNet 4"
+    }
+  },
+  "54": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 246813579,
+      "steps": 30,
+      "cfg": 6.0,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1.0,
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "44",
+        0
+      ],
+      "negative": [
+        "44",
+        1
+      ],
+      "latent_image": [
+        "4",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "KSampler 4"
+    }
+  },
+  "64": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "54",
+        0
+      ],
+      "vae": [
+        "1",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "VAE 4"
+    }
+  },
+  "74": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "64",
+        0
+      ],
+      "filename_prefix": "04_side_left"
+    },
+    "_meta": {
+      "title": "保存 4"
+    }
+  },
+  "25": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "05_side_right.png"
+    },
+    "_meta": {
+      "title": "姿势骨架 05_side_right"
+    }
+  },
+  "35": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "pixar style, disney pixar, 3d cartoon character, a cute baby hedgehog, round plump body, small soft quills on back, tiny legs, large sparkling glossy eyes, small black button nose, smooth clay skin between quills, solid pastel light blue clean background, full body shot, centered, soft studio lighting, octane render, 8k uhd, masterpiece, best quality, calm neutral expression, right side profile",
+      "clip": [
+        "8",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "正提示词 5（calm neutral expre）"
+    }
+  },
+  "45": {
+    "class_type": "ControlNetApplyAdvanced",
+    "inputs": {
+      "positive": [
+        "35",
+        0
+      ],
+      "negative": [
+        "3",
+        0
+      ],
+      "control_net": [
+        "12",
+        0
+      ],
+      "image": [
+        "25",
+        0
+      ],
+      "strength": 0.8,
+      "start_percent": 0.0,
+      "end_percent": 1.0
+    },
+    "_meta": {
+      "title": "ControlNet 5"
+    }
+  },
+  "55": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 246813579,
+      "steps": 30,
+      "cfg": 6.0,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1.0,
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "45",
+        0
+      ],
+      "negative": [
+        "45",
+        1
+      ],
+      "latent_image": [
+        "4",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "KSampler 5"
+    }
+  },
+  "65": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "55",
+        0
+      ],
+      "vae": [
+        "1",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "VAE 5"
+    }
+  },
+  "75": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "65",
+        0
+      ],
+      "filename_prefix": "05_side_right"
+    },
+    "_meta": {
+      "title": "保存 5"
+    }
+  },
+  "26": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "06_back.png"
+    },
+    "_meta": {
+      "title": "姿势骨架 06_back"
+    }
+  },
+  "36": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "pixar style, disney pixar, 3d cartoon character, a cute baby hedgehog, round plump body, small soft quills on back, tiny legs, large sparkling glossy eyes, small black button nose, smooth clay skin between quills, solid pastel light blue clean background, full body shot, centered, soft studio lighting, octane render, 8k uhd, masterpiece, best quality, calm neutral expression, viewed from behind, back turned",
+      "clip": [
+        "8",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "正提示词 6（calm neutral expre）"
+    }
+  },
+  "46": {
+    "class_type": "ControlNetApplyAdvanced",
+    "inputs": {
+      "positive": [
+        "36",
+        0
+      ],
+      "negative": [
+        "3",
+        0
+      ],
+      "control_net": [
+        "12",
+        0
+      ],
+      "image": [
+        "26",
+        0
+      ],
+      "strength": 0.8,
+      "start_percent": 0.0,
+      "end_percent": 1.0
+    },
+    "_meta": {
+      "title": "ControlNet 6"
+    }
+  },
+  "56": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 246813579,
+      "steps": 30,
+      "cfg": 6.0,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1.0,
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "46",
+        0
+      ],
+      "negative": [
+        "46",
+        1
+      ],
+      "latent_image": [
+        "4",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "KSampler 6"
+    }
+  },
+  "66": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "56",
+        0
+      ],
+      "vae": [
+        "1",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "VAE 6"
+    }
+  },
+  "76": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "66",
+        0
+      ],
+      "filename_prefix": "06_back"
+    },
+    "_meta": {
+      "title": "保存 6"
+    }
+  },
+  "27": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "07_happy_arms_up.png"
+    },
+    "_meta": {
+      "title": "姿势骨架 07_happy_arms_up"
+    }
+  },
+  "37": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "pixar style, disney pixar, 3d cartoon character, a cute baby hedgehog, round plump body, small soft quills on back, tiny legs, large sparkling glossy eyes, small black button nose, smooth clay skin between quills, solid pastel light blue clean background, full body shot, centered, soft studio lighting, octane render, 8k uhd, masterpiece, best quality, big cheerful smile, joyful, arms raised up happily",
+      "clip": [
+        "8",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "正提示词 7（big cheerful smile）"
+    }
+  },
+  "47": {
+    "class_type": "ControlNetApplyAdvanced",
+    "inputs": {
+      "positive": [
+        "37",
+        0
+      ],
+      "negative": [
+        "3",
+        0
+      ],
+      "control_net": [
+        "12",
+        0
+      ],
+      "image": [
+        "27",
+        0
+      ],
+      "strength": 0.8,
+      "start_percent": 0.0,
+      "end_percent": 1.0
+    },
+    "_meta": {
+      "title": "ControlNet 7"
+    }
+  },
+  "57": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 246813579,
+      "steps": 30,
+      "cfg": 6.0,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1.0,
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "47",
+        0
+      ],
+      "negative": [
+        "47",
+        1
+      ],
+      "latent_image": [
+        "4",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "KSampler 7"
+    }
+  },
+  "67": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "57",
+        0
+      ],
+      "vae": [
+        "1",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "VAE 7"
+    }
+  },
+  "77": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "67",
+        0
+      ],
+      "filename_prefix": "07_happy_arms_up"
+    },
+    "_meta": {
+      "title": "保存 7"
+    }
+  },
+  "28": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "08_surprised_hands_face.png"
+    },
+    "_meta": {
+      "title": "姿势骨架 08_surprised_hands_face"
+    }
+  },
+  "38": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "pixar style, disney pixar, 3d cartoon character, a cute baby hedgehog, round plump body, small soft quills on back, tiny legs, large sparkling glossy eyes, small black button nose, smooth clay skin between quills, solid pastel light blue clean background, full body shot, centered, soft studio lighting, octane render, 8k uhd, masterpiece, best quality, surprised expression, eyes wide, mouth open, hands near face",
+      "clip": [
+        "8",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "正提示词 8（surprised expressi）"
+    }
+  },
+  "48": {
+    "class_type": "ControlNetApplyAdvanced",
+    "inputs": {
+      "positive": [
+        "38",
+        0
+      ],
+      "negative": [
+        "3",
+        0
+      ],
+      "control_net": [
+        "12",
+        0
+      ],
+      "image": [
+        "28",
+        0
+      ],
+      "strength": 0.8,
+      "start_percent": 0.0,
+      "end_percent": 1.0
+    },
+    "_meta": {
+      "title": "ControlNet 8"
+    }
+  },
+  "58": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 246813579,
+      "steps": 30,
+      "cfg": 6.0,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1.0,
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "48",
+        0
+      ],
+      "negative": [
+        "48",
+        1
+      ],
+      "latent_image": [
+        "4",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "KSampler 8"
+    }
+  },
+  "68": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "58",
+        0
+      ],
+      "vae": [
+        "1",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "VAE 8"
+    }
+  },
+  "78": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "68",
+        0
+      ],
+      "filename_prefix": "08_surprised_hands_face"
+    },
+    "_meta": {
+      "title": "保存 8"
+    }
+  },
+  "29": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "09_wink_hand_hip.png"
+    },
+    "_meta": {
+      "title": "姿势骨架 09_wink_hand_hip"
+    }
+  },
+  "39": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "pixar style, disney pixar, 3d cartoon character, a cute baby hedgehog, round plump body, small soft quills on back, tiny legs, large sparkling glossy eyes, small black button nose, smooth clay skin between quills, solid pastel light blue clean background, full body shot, centered, soft studio lighting, octane render, 8k uhd, masterpiece, best quality, cute wink, playful smile, one hand on hip waving",
+      "clip": [
+        "8",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "正提示词 9（cute wink, playful）"
+    }
+  },
+  "49": {
+    "class_type": "ControlNetApplyAdvanced",
+    "inputs": {
+      "positive": [
+        "39",
+        0
+      ],
+      "negative": [
+        "3",
+        0
+      ],
+      "control_net": [
+        "12",
+        0
+      ],
+      "image": [
+        "29",
+        0
+      ],
+      "strength": 0.8,
+      "start_percent": 0.0,
+      "end_percent": 1.0
+    },
+    "_meta": {
+      "title": "ControlNet 9"
+    }
+  },
+  "59": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 246813579,
+      "steps": 30,
+      "cfg": 6.0,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1.0,
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "49",
+        0
+      ],
+      "negative": [
+        "49",
+        1
+      ],
+      "latent_image": [
+        "4",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "KSampler 9"
+    }
+  },
+  "69": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "59",
+        0
+      ],
+      "vae": [
+        "1",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "VAE 9"
+    }
+  },
+  "79": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "69",
+        0
+      ],
+      "filename_prefix": "09_wink_hand_hip"
+    },
+    "_meta": {
+      "title": "保存 9"
+    }
+  }
+}

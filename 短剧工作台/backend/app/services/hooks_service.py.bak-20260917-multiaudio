@@ -1,0 +1,794 @@
+"""自动化钩子：抽尾帧 / 音频时长校验 / 文件存在性 / 片段合成 / 8bit 规范转码。
+
+这是「省掉手工搬运」的核心三件事：
+1. 视频任务成功 → 抽尾帧 → 落尾帧目录 → 自动写入下一镜首帧
+2. 音频产出 → mutagen 精测 → 校验 duration ≥ 音频 + 起始偏移
+3. 生成前 → 统一检查引用文件是否存在（容错缺后缀）
+"""
+from __future__ import annotations
+
+import re
+import subprocess
+import tempfile
+from pathlib import Path
+
+from ..config import PENDING_DIR, STORAGE_DIR, ffmpeg_exe
+from ..core import db
+from . import file_store, naming, shot_service
+from .file_store import audio_duration as _audio_duration
+
+
+class HookError(RuntimeError):
+    pass
+
+
+def _run(args: list[str], timeout: int = 600) -> subprocess.CompletedProcess:
+    try:
+        return subprocess.run(
+            args, capture_output=True, text=True, timeout=timeout,
+            encoding="utf-8", errors="ignore",
+        )
+    except FileNotFoundError as e:
+        raise HookError(f"ffmpeg 不可用：{e}") from e
+    except subprocess.TimeoutExpired as e:
+        raise HookError(f"ffmpeg 执行超时（{timeout}s）") from e
+
+
+# ---------------- 抽帧 ----------------
+
+def extract_frame(video_path: str | Path, out_path: str | Path, at: str | float = "tail") -> Path:
+    """抽帧。at='tail' 尾帧 / 'first' 首帧 / 数字为秒。"""
+    src = Path(video_path)
+    dst = Path(out_path)
+    if not src.exists():
+        raise HookError(f"视频不存在：{src}")
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    ff = ffmpeg_exe()
+    if at == "tail":
+        args = [ff, "-y", "-sseof", "-0.15", "-i", str(src), "-frames:v", "1", "-q:v", "2", str(dst)]
+    elif at == "first":
+        args = [ff, "-y", "-i", str(src), "-frames:v", "1", "-q:v", "2", str(dst)]
+    else:
+        args = [ff, "-y", "-ss", str(float(at)), "-i", str(src), "-frames:v", "1", "-q:v", "2", str(dst)]
+    r = _run(args, timeout=180)
+    if r.returncode != 0 or not dst.exists():
+        raise HookError(f"抽帧失败：{(r.stderr or '')[-400:]}")
+    return dst
+
+
+def tail_frame_path(project: dict, shot_code: str, episode: int = 1, ext: str = "jpg") -> Path:
+    base = project.get("tail_dir") or (Path(project.get("keyframe_dir") or ".") / "视频尾帧")
+    stem = naming.code_stem(shot_code, episode)
+    return Path(base) / f"{stem}_tail.{ext}"
+
+
+def extract_and_register_tail(shot_id: int, video_path: str | Path, *, link_to_next: bool = True) -> dict:
+    """抽尾帧 → 落盘 → 登记到本镜 last frame → （可选）回填下一镜首帧。"""
+    shot = db.query_one("SELECT * FROM shots WHERE id=?", (shot_id,))
+    if not shot:
+        raise HookError(f"镜头不存在：{shot_id}")
+    ep = db.query_one("SELECT * FROM episodes WHERE id=?", (shot["episode_id"],))
+    project = db.query_one("SELECT * FROM projects WHERE id=?", (ep["project_id"],)) if ep else None
+    if not project:
+        raise HookError("镜头所属项目不存在")
+
+    dst = tail_frame_path(project, shot["shot_code"], ep["number"] if ep else 1)
+    extract_frame(video_path, dst, "tail")
+    info = file_store.probe(dst)
+    fid = file_store.index_file(dst)
+    db.execute("DELETE FROM shot_frames WHERE shot_id=? AND frame_type='last'", (shot_id,))
+    db.execute(
+        """INSERT INTO shot_frames(shot_id, frame_type, file_path, file_name, source,
+               width, height, format, size_bytes, note)
+           VALUES(?,?,?,?,?,?,?,?,?,?)""",
+        (
+            shot_id, "last", str(dst.resolve()), dst.name, "tail_frame",
+            info.get("width"), info.get("height"), info.get("format"), info.get("size_bytes"),
+            f"{shot['shot_code']} 视频尾帧（自动抽取）",
+        ),
+    )
+
+    result = {"tail_path": str(dst), "file_id": fid, "linked_next": None}
+
+    if link_to_next:
+        nxt = shot_service.next_shot_of(shot_id)
+        if nxt:
+            shot_service.set_first_frame(
+                nxt["id"], str(dst), source="tail_frame",
+                note=f"上一镜 {shot['shot_code']} 尾帧（自动回填）",
+            )
+            _upsert_video_slot0(nxt["id"], dst.name, f"上一镜 {shot['shot_code']} 视频尾帧（首帧锚点）")
+            db.execute(
+                """INSERT INTO health_issues(project_id, episode_id, shot_id, issue_type, severity,
+                       target, message, suggestion) VALUES(?,?,?,?,?,?,?,?)""",
+                (
+                    project["id"], nxt["episode_id"], nxt["id"], "tail_refilled", "info",
+                    dst.name, f"镜头{nxt['shot_code']} 首帧已用上一镜尾帧自动回填",
+                    f"如需替换为独立分镜图，改 ref_image_0 即可",
+                ),
+            )
+            result["linked_next"] = {"shot_id": nxt["id"], "shot_code": nxt["shot_code"]}
+    return result
+
+
+def _upsert_video_slot0(shot_id: int, file_name: str, note: str) -> None:
+    """把文件名写到视频侧第 0 号槽位（ref_image_0）。"""
+    exists = db.query_one(
+        "SELECT id FROM shot_asset_links WHERE shot_id=? AND target_side='video' AND slot_index=0",
+        (shot_id,),
+    )
+    if exists:
+        db.execute(
+            "UPDATE shot_asset_links SET file_name=?, take_note=?, ref_version='render_frame' WHERE id=?",
+            (file_name, note, exists["id"]),
+        )
+    else:
+        db.execute(
+            """INSERT INTO shot_asset_links(shot_id, role, slot_index, target_side, ref_version,
+                   take_note, file_name, raw_text)
+               VALUES(?,?,?,?,?,?,?,?)""",
+            (shot_id, "首帧锚点", 0, "video", "render_frame", note, file_name, note),
+        )
+    # 首帧换了 → 视频提示词里那行「Image 1」也得跟着换，
+    # 否则提示词仍指向旧图，模型按旧图起画面，与真实首帧对不上。
+    refresh_video_decl(shot_id)
+
+
+def project_of_shot(shot_id: int) -> dict | None:
+    """镜头 → 集 → 项目。"""
+    shot = db.query_one("SELECT * FROM shots WHERE id=?", (shot_id,))
+    if not shot:
+        return None
+    ep = db.query_one("SELECT * FROM episodes WHERE id=?", (shot["episode_id"],))
+    if not ep:
+        return None
+    return db.query_one("SELECT * FROM projects WHERE id=?", (ep["project_id"],))
+
+
+def _resolve_asset(path_or_name: str | Path | None, project: dict | None) -> Path | None:
+    """先把输入当真实路径试，不行再当素材名走 file_store.resolve。"""
+    raw = str(path_or_name or "").strip()
+    if not raw:
+        return None
+    p = Path(raw)
+    if p.is_absolute() and p.exists():
+        return p
+    return file_store.resolve(raw, project)
+
+
+def register_keyframe(shot_id: int, image_path: str | Path, *, as_first_frame: bool = True) -> dict:
+    """把采纳的分镜图登记为镜头产物；作为首帧时同时更新 ref_image_0。
+
+    写 ref_image_0 之前先反查一次：这个名字必须能被 file_store.resolve 解析回真文件。
+    否则出片时才会暴露成「幽灵引用」，所以这里直接拦下。
+    """
+    p = Path(image_path)
+    if not p.exists():
+        raise HookError(f"图片不存在：{p}")
+    fid = file_store.index_file(p)
+    info = file_store.probe(p)
+    shot = db.query_one("SELECT * FROM shots WHERE id=?", (shot_id,))
+    if not shot:
+        raise HookError(f"镜头不存在：{shot_id}")
+
+    if as_first_frame:
+        project = project_of_shot(shot_id)
+        if not _resolve_asset(p.name, project):
+            raise HookError(
+                f"「{p.name}」不在本项目的素材目录里，采纳后 ref_image_0 会解析不到文件"
+                f"（幽灵引用）。请先把它放进项目的分镜图目录，再回来采纳。"
+            )
+
+    db.execute(
+        "UPDATE shot_details SET image_target_name=?, updated_at=datetime('now','localtime') WHERE shot_id=?",
+        (p.name, shot_id),
+    )
+    if as_first_frame:
+        shot_service.set_first_frame(shot_id, str(p), source="storyboard", note="采纳的分镜图")
+        _upsert_video_slot0(shot_id, p.name, "分镜图（首帧锚点）")
+    return {"file_id": fid, "path": str(p), "width": info.get("width"), "height": info.get("height")}
+
+
+def _first_frame_origin(shot_id: int, file_name: str | None) -> str:
+    """本镜首帧是「采纳的分镜图」还是「上一镜尾帧」。
+
+    必须读 shot_frames.first.source —— 相邻的 shot_asset_links.ref_version 只区分
+    「概念稿 / 渲染帧」，采纳分镜图和取用尾帧**都会写成 render_frame**，
+    拿它判断会把「采纳的分镜图」误标成「上一镜尾帧」。
+    """
+    fr = db.query_one(
+        "SELECT source, note FROM shot_frames WHERE shot_id=? AND frame_type='first' ORDER BY id DESC LIMIT 1",
+        (shot_id,),
+    )
+    src = (fr or {}).get("source") or ""
+    if src == "tail_frame":
+        return "上一镜尾帧"
+    if src == "picked_tail":
+        # 从任意前序镜头的成片抽来的尾帧，来源标成具体镜号更准（如「14c 尾帧」）
+        code = ((fr or {}).get("note") or "").split(" ")[0].strip()
+        return f"{code} 尾帧" if code else "选用的尾帧"
+    if src == "storyboard":
+        return "采纳的分镜图"
+    if src == "uploaded":
+        return "手动上传"
+    # 没有 shot_frames 记录（多为导入的老数据）→ 只能按命名猜，标明是推断
+    if "_tail." in (file_name or "").lower():
+        return "上一镜尾帧（按文件名推断）"
+    return "来源未登记（按文件名推断为分镜图）"
+
+
+# 声明段里的首帧行：`Image 1：xxx.jpg（来源）—— …`。
+# 冒号可能是全角/半角，粗体星号可有可无；老的 `Image 1（= Picture 1）：` 也要认，
+# 这样历史提示词在被同步时能顺手把那个 `（= Picture N）` 前缀清掉。
+#
+# ⚠ 必须带 re.M：refresh_video_decl 要在**整段多行提示词**上 search，没有 re.M 时
+#   `^` 只锚定字符串开头，而 Image 1 是声明块的第 3 行 → 永远匹配不到，
+#   会静默误判成「提示词里没有 Image 1 行」而不做同步。
+#   `\s` 也要收窄成 `[ \t]`：re.M 下 \s 能吃掉换行，导致匹配跨行串到下一行去。
+# 第 1 组是行首缩进/星号，重写时保留缩进但把 `Image 1…：` 统一成干净的 `Image 1：`。
+_IMAGE1_RE = re.compile(
+    r"^([ \t]*\*{0,2}[ \t]*)Image[ \t]*1[ \t]*(?:[（(][^)）]*[)）])?[ \t]*[:：]",
+    re.I | re.M,
+)
+
+
+def _replace_image1(text: str, new_name: str, origin: str) -> str | None:
+    """把声明段里的 `Image 1` 行改成当前首帧（文件名 + 来源），保留「——」之后的说明。
+
+    只换文件名与来源括号，后面的「视频首帧锚点（0.00s）+ 机位/景别…」是用户写的执行说明，
+    原样留着。行首统一重写成 `Image 1：`（不再带 `（= Picture 1）`）。
+    找不到这行或本来就是当前首帧 → 返回 None（不动）。
+    """
+    for i, ln in enumerate(text.splitlines()):
+        m = _IMAGE1_RE.match(ln)
+        if not m:
+            continue
+        rest = ln[m.end():].strip()
+        tail = ""
+        for sep in ("——", "—"):
+            if sep in rest:
+                tail = rest.split(sep, 1)[1].strip()
+                break
+        new = f"{m.group(1)}Image 1：{new_name}（{origin}）"
+        new += f"—— {tail}" if tail else "—— 视频首帧锚点（0.00 秒），画面起始状态严格以它为准"
+        if new == ln:
+            return None
+        lines = text.splitlines()
+        lines[i] = new
+        return "\n".join(lines)
+    return None
+
+
+def refresh_video_decl(shot_id: int) -> dict:
+    """首帧变动后，同步视频提示词「素材关系声明」里的 Image 1 行。
+
+    声明段是导入时按分镜文档写死的文本（里面带着文件名），而首帧会被
+    「传给视频 / 上传图片作首帧 / 上一镜尾帧回填」换掉。不同步的话，提示词永远
+    指向旧图，出片起始画面与页面显示的首帧不是同一张。
+    """
+    fr = db.query_one(
+        "SELECT file_name FROM shot_frames WHERE shot_id=? AND frame_type='first' ORDER BY id DESC LIMIT 1",
+        (shot_id,),
+    )
+    name = (fr or {}).get("file_name")
+    if not name:
+        return {"changed": False, "reason": "本镜没有登记首帧"}
+    row = db.query_one("SELECT video_prompt FROM shot_details WHERE shot_id=?", (shot_id,))
+    cur = (row or {}).get("video_prompt") or ""
+    if not _IMAGE1_RE.search(cur):
+        return {"changed": False, "reason": "提示词里没有 Image 1 行"}
+    new = _replace_image1(cur, name, _first_frame_origin(shot_id, name))
+    if not new:
+        return {"changed": False, "reason": "Image 1 行已是当前首帧"}
+    db.execute(
+        "UPDATE shot_details SET video_prompt=?, updated_at=datetime('now','localtime') WHERE shot_id=?",
+        (new, shot_id),
+    )
+    return {"changed": True, "image1": name}
+
+
+def tail_candidates_of_prev(shot_id: int) -> dict:
+    """本镜可用的「上一镜尾帧」候选。
+
+    两个来源：① 上一镜已登记的真实尾帧（shot_frames.last）；
+    ② 按命名规律推导出的 `{上一镜code}_tail.jpg` 等，且在磁盘上确实存在。
+    顺带带上本镜当前的 ref_image_0，供前端标注来源。
+    """
+    shot = db.query_one("SELECT * FROM shots WHERE id=?", (shot_id,))
+    if not shot:
+        raise HookError(f"镜头不存在：{shot_id}")
+    ep = db.query_one("SELECT * FROM episodes WHERE id=?", (shot["episode_id"],))
+    project = db.query_one("SELECT * FROM projects WHERE id=?", (ep["project_id"],)) if ep else None
+    prev = shot_service.prev_shot_of(shot_id)
+
+    current = db.query_one(
+        "SELECT * FROM shot_asset_links WHERE shot_id=? AND target_side='video' AND slot_index=0",
+        (shot_id,),
+    )
+    cur_out = None
+    if current:
+        resolved = file_store.resolve(current.get("file_name"), project)
+        cur_out = {
+            "link_id": current["id"],
+            "file_name": current.get("file_name"),
+            "ref_version": current.get("ref_version"),
+            "resolved_path": str(resolved) if resolved else None,
+            "file_exists": bool(resolved),
+            "origin": _first_frame_origin(shot_id, current.get("file_name")),
+        }
+
+    if not prev:
+        return {
+            "prev": None, "candidates": [], "current": cur_out,
+            "all_tails": _all_registered_tails(project, exclude=set()),
+        }
+
+    seen: set[str] = set()
+    cands: list[dict] = []
+
+    for fr in db.query(
+        "SELECT * FROM shot_frames WHERE shot_id=? AND frame_type='last' AND is_active=1 ORDER BY id DESC",
+        (prev["id"],),
+    ):
+        p = Path(fr["file_path"] or "")
+        if p.name and p.exists() and p.name not in seen:
+            seen.add(p.name)
+            cands.append({
+                "name": p.name, "path": str(p), "source": "已登记尾帧",
+                "note": fr.get("note") or "",
+            })
+
+    for nm in naming.tail_names(prev["shot_code"], ep["number"] if ep else 1):
+        if nm in seen:
+            continue
+        p = file_store.resolve(nm, project)
+        if p:
+            seen.add(nm)
+            cands.append({"name": nm, "path": str(p), "source": "命名推导", "note": ""})
+
+    return {
+        "prev": {"id": prev["id"], "shot_code": prev["shot_code"], "title": prev.get("title")},
+        "candidates": cands,
+        "current": cur_out,
+        "all_tails": _all_registered_tails(project, exclude=seen),
+    }
+
+
+def _all_registered_tails(project: dict | None, *, exclude: set[str]) -> list[dict]:
+    """项目尾帧目录里所有可用的尾帧，供「不按上一镜」时挑（如硬切独立镜）。
+
+    只认 `*_tail.*` 命名，避免把中间产物混进来。
+    """
+    tail_dir = (project or {}).get("tail_dir")
+    if not tail_dir:
+        return []
+    d = Path(tail_dir)
+    if not d.is_dir():
+        return []
+    out: list[dict] = []
+    for p in sorted(d.glob("*_tail.*")):
+        if p.name in exclude or not p.is_file():
+            continue
+        out.append({"name": p.name, "path": str(p), "source": "尾帧目录", "note": ""})
+    return out
+
+
+# ---------------- 尾帧来源：按镜头挑，不必再跳去上一镜 ----------------
+
+VIDEO_EXTS = (".mp4", ".mov", ".mkv", ".webm")
+
+
+def _shots_of_project(project_id: int) -> list[dict]:
+    return db.query(
+        """SELECT s.id, s.shot_code, s.title, s.sort_order, e.number AS episode_number
+           FROM shots s JOIN episodes e ON e.id=s.episode_id
+           WHERE e.project_id=? ORDER BY e.number, s.sort_order""",
+        (project_id,),
+    )
+
+
+def _videos_of_shot(project: dict | None, shot_code: str, episode: int) -> list[dict]:
+    """按命名规律找该镜头的成片：正式目录「分镜视频」+ 工作台暂存区。
+
+    命名以 naming.keyframe_names 为准（含 `0114c.mp4` 与 `0106-c.mp4` 两种写法），
+    不去查 generation_tasks —— 很多成片是手工放进目录的，库里没有任务记录。
+
+    暂存区（config.PENDING_DIR）是生成产物还没归档时待的地方，也要能在这里被
+    选中去抽尾帧，所以一并扫；pending=True 让界面知道它还没归档。
+    """
+    stems = {Path(n).stem for n in naming.keyframe_names(shot_code, episode)}
+    out: list[dict] = []
+    for d, pending in ((Path((project or {}).get("video_dir") or ""), False),
+                       (PENDING_DIR, True)):
+        if not d.is_dir():
+            continue
+        for f in sorted(d.iterdir()):
+            if not f.is_file() or f.suffix.lower() not in VIDEO_EXTS or f.stem not in stems:
+                continue
+            try:
+                size = f.stat().st_size
+            except OSError:
+                size = None
+            out.append({"name": f.name, "path": str(f), "size_bytes": size, "pending": pending})
+    return out
+
+
+def _tails_of_shot(project: dict | None, shot_id: int, shot_code: str, episode: int) -> list[dict]:
+    """该镜头已抽 / 已登记的尾帧：先看 shot_frames.last，再看尾帧目录里的命名文件。"""
+    seen: set[str] = set()
+    out: list[dict] = []
+    for fr in db.query(
+        "SELECT * FROM shot_frames WHERE shot_id=? AND frame_type='last' AND is_active=1 ORDER BY id DESC",
+        (shot_id,),
+    ):
+        p = Path(fr["file_path"] or "")
+        if p.is_file() and p.name not in seen:
+            seen.add(p.name)
+            out.append({"name": p.name, "path": str(p), "exists": True, "source": "已登记尾帧"})
+    tdir = (project or {}).get("tail_dir")
+    if tdir:
+        for nm in naming.tail_names(shot_code, episode):
+            if nm in seen:
+                continue
+            f = Path(tdir) / nm
+            if f.is_file():
+                seen.add(nm)
+                out.append({"name": nm, "path": str(f), "exists": True, "source": "尾帧目录"})
+    return out
+
+
+def tail_sources_for(shot_id: int) -> dict:
+    """本镜能取用尾帧的**来源镜头**清单：只列本镜之前的镜头。
+
+    之后的镜头还没拍，不可能当来源，所以不进列表。每镜带上它的成片（可现抽）
+    与已有尾帧（可直接用）；尾帧目录里不属于任何前序镜头的零散尾帧另列一组，
+    免得历史遗留的尾帧找不到入口。
+    """
+    shot = db.query_one("SELECT * FROM shots WHERE id=?", (shot_id,))
+    if not shot:
+        raise HookError(f"镜头不存在：{shot_id}")
+    ep = db.query_one("SELECT * FROM episodes WHERE id=?", (shot["episode_id"],))
+    if not ep:
+        raise HookError("镜头不属于任何一集")
+    project = db.query_one("SELECT * FROM projects WHERE id=?", (ep["project_id"],))
+
+    cur_key = (ep["number"], shot["sort_order"] or 0)
+    before = [s for s in _shots_of_project(ep["project_id"])
+              if (s["episode_number"], s["sort_order"] or 0) < cur_key]
+
+    listed: set[str] = set()
+    shots_out: list[dict] = []
+    for s in reversed(before):                      # 最近的排前面
+        tails = _tails_of_shot(project, s["id"], s["shot_code"], s["episode_number"])
+        listed |= {t["name"] for t in tails}
+        shots_out.append({
+            "id": s["id"], "shot_code": s["shot_code"], "title": s["title"],
+            "episode_number": s["episode_number"],
+            "videos": _videos_of_shot(project, s["shot_code"], s["episode_number"]),
+            "tails": tails,
+        })
+
+    tdir = (project or {}).get("tail_dir")
+    return {
+        "shot": {"id": shot["id"], "shot_code": shot["shot_code"]},
+        "prev_shot_id": (before[-1]["id"] if before else None),
+        "tail_dir": tdir,
+        "tail_dir_exists": bool(tdir) and Path(tdir).is_dir(),
+        "shots": shots_out,
+        "other_tails": _all_registered_tails(project, exclude=listed),
+    }
+
+
+def extract_tail_from_source(
+    shot_id: int, source_shot_id: int, video_path: str | None = None
+) -> dict:
+    """对**指定的前序镜头**的成片抽尾帧 → 落进项目尾帧目录 → 直接设为本镜首帧。
+
+    与 extract_and_register_tail 的分工：
+    - 那个是「在本镜抽本镜的尾帧、回填下一镜」（出片后的自动/半自动流程）；
+    - 这个是「在本镜抽**别的**前序镜头的尾帧、回填本镜」，即选尾帧弹窗里那条路径。
+    尾帧同时登记到源镜头名下，下次任何镜头要它都能直接选到，不用重抽。
+    """
+    shot = db.query_one("SELECT * FROM shots WHERE id=?", (shot_id,))
+    src = db.query_one("SELECT * FROM shots WHERE id=?", (source_shot_id,))
+    if not shot or not src:
+        raise HookError("镜头不存在")
+    ep = db.query_one("SELECT * FROM episodes WHERE id=?", (shot["episode_id"],))
+    sep = db.query_one("SELECT * FROM episodes WHERE id=?", (src["episode_id"],))
+    if not ep or not sep or ep["project_id"] != sep["project_id"]:
+        raise HookError("来源镜头不在同一个项目里")
+    if (sep["number"], src["sort_order"] or 0) >= (ep["number"], shot["sort_order"] or 0):
+        raise HookError(f"镜头 {src['shot_code']} 不在本镜之前，不能作为尾帧来源")
+
+    project = db.query_one("SELECT * FROM projects WHERE id=?", (ep["project_id"],))
+    tail_dir = (project or {}).get("tail_dir")
+    if not tail_dir:
+        raise HookError("本项目还没设置「视频尾帧目录」，请先在项目设置里补上再抽尾帧")
+
+    video = (video_path or "").strip()
+    if not video:
+        vids = _videos_of_shot(project, src["shot_code"], sep["number"])
+        if not vids:
+            raise HookError(
+                f"镜头 {src['shot_code']} 在分镜视频目录里没有找到成片，请先出片，或手动指定一个视频文件"
+            )
+        video = vids[0]["path"]
+    vsrc = Path(video)
+    if not vsrc.is_file():
+        raise HookError(f"视频文件不存在：{video}")
+
+    dst = Path(tail_dir) / f"{naming.code_stem(src['shot_code'], sep['number'])}_tail.jpg"
+    extract_frame(vsrc, dst, "tail")
+    info = file_store.probe(dst)
+    fid = file_store.index_file(dst)
+
+    # 1) 登记到源镜头名下：以后任何镜头的选尾帧弹窗里都能直接看到它
+    db.execute("DELETE FROM shot_frames WHERE shot_id=? AND frame_type='last'", (src["id"],))
+    db.execute(
+        """INSERT INTO shot_frames(shot_id, frame_type, file_path, file_name, source,
+               width, height, format, size_bytes, note)
+           VALUES(?,?,?,?,?,?,?,?,?,?)""",
+        (
+            src["id"], "last", str(dst.resolve()), dst.name, "tail_frame",
+            info.get("width"), info.get("height"), info.get("format"), info.get("size_bytes"),
+            f"{src['shot_code']} 视频尾帧（从成片 {vsrc.name} 抽取）",
+        ),
+    )
+
+    # 2) 设为本镜首帧：视频参考图第 1 张 + 提示词 Image 1 行一起更新
+    shot_service.set_first_frame(
+        shot_id, str(dst), source="picked_tail",
+        note=f"{src['shot_code']} 视频尾帧（本镜选用）",
+    )
+    _upsert_video_slot0(shot_id, dst.name, f"{src['shot_code']} 视频尾帧（首帧锚点）")
+
+    return {
+        "tail_path": str(dst), "file_name": dst.name, "file_id": fid,
+        "source_shot": {"id": src["id"], "shot_code": src["shot_code"]},
+        "video": str(vsrc), "video_name": vsrc.name,
+    }
+
+
+def attach_tail_as_first_frame(
+    shot_id: int, tail: str | Path, *, project: dict | None = None, prev_shot_code: str | None = None
+) -> dict:
+    """把「上一镜尾帧」登记为本镜首帧锚点，并写入视频侧 ref_image_0。
+
+    这是「抽尾帧并回填下一镜」的反向补充：触发权回到**本镜**，
+    上一镜出片时没跑成自动回填、或尾帧早已躺在磁盘上的情况，都能在这里补齐。
+    """
+    project = project or project_of_shot(shot_id)
+    p = _resolve_asset(tail, project)
+    if not p:
+        raise HookError(f"尾帧文件找不到：{tail}")
+    shot = db.query_one("SELECT * FROM shots WHERE id=?", (shot_id,))
+    if not shot:
+        raise HookError(f"镜头不存在：{shot_id}")
+
+    who = f"上一镜 {prev_shot_code}" if prev_shot_code else "上一镜"
+    note = f"{who}尾帧（人工取用为首帧锚点）"
+    shot_service.set_first_frame(shot_id, str(p), source="tail_frame", note=note)
+    _upsert_video_slot0(shot_id, p.name, note)
+    return {"file_name": p.name, "path": str(p), "note": note, "ref_version": "render_frame"}
+
+
+def save_uploaded_first_frame(shot_id: int, filename: str, data: bytes) -> dict:
+    """手动上传一张图作为本镜首帧锚点（不等生成，来源也不限于上一镜尾帧）。
+
+    图存进项目的「分镜图」目录（属候选目录，保证 ref_image_0 能被 file_store.resolve 解析回真文件），
+    再登记 shot_frames.first（source=uploaded）并覆盖视频侧 ref_image_0。
+    不动 shot_details.image_target_name —— 那是「分镜图成品」的记账，别被手工图污染。
+    """
+    shot = db.query_one("SELECT * FROM shots WHERE id=?", (shot_id,))
+    if not shot:
+        raise HookError(f"镜头不存在：{shot_id}")
+    project = project_of_shot(shot_id)
+    if not project:
+        raise HookError("镜头所属项目找不到，无法确定存放目录")
+
+    name = Path(filename or "first_frame.png").name
+    ext = Path(name).suffix.lower()
+    if ext not in {".jpg", ".jpeg", ".png", ".webp", ".bmp"}:
+        raise HookError(f"首帧只支持图片（jpg / png / webp / bmp），收到：{ext or '无后缀'}")
+    if not data:
+        raise HookError("上传的文件是空的")
+
+    dest = Path(project.get("keyframe_dir") or (STORAGE_DIR / "keyframes"))
+    dest.mkdir(parents=True, exist_ok=True)
+    dst = dest / name
+    i = 1
+    while dst.exists():
+        dst = dest / f"{Path(name).stem}_{i}{Path(name).suffix}"
+        i += 1
+    dst.write_bytes(data)
+    file_store.index_file(dst)
+
+    note = "手动上传的首帧"
+    shot_service.set_first_frame(shot_id, str(dst), source="uploaded", note=note)
+    _upsert_video_slot0(shot_id, dst.name, note)
+    return {"file_name": dst.name, "path": str(dst), "note": note, "ref_version": "render_frame"}
+
+
+# ---------------- 音频校验 ----------------
+
+def audit_audio(shot_id: int) -> dict:
+    """精测音频时长并校验时长是否够用。"""
+    shot = db.query_one("SELECT * FROM shots WHERE id=?", (shot_id,))
+    if not shot:
+        raise HookError(f"镜头不存在：{shot_id}")
+    ep = db.query_one("SELECT * FROM episodes WHERE id=?", (shot["episode_id"],))
+    project = db.query_one("SELECT * FROM projects WHERE id=?", (ep["project_id"],)) if ep else None
+    detail = db.query_one("SELECT * FROM shot_details WHERE shot_id=?", (shot_id,)) or {}
+    lines = db.query("SELECT * FROM shot_dialog_lines WHERE shot_id=?", (shot_id,))
+
+    out = {"shot_id": shot_id, "audio": None, "duration": detail.get("duration_sec"), "ok": True, "problems": []}
+    for ln in lines:
+        fname = ln.get("audio_file")
+        if not fname:
+            continue
+        real = file_store.resolve(fname, project) if project else None
+        measured = _audio_duration(real) if real else None
+        if real and measured:
+            db.execute(
+                "UPDATE shot_dialog_lines SET audio_measured_sec=? WHERE id=?", (measured, ln["id"])
+            )
+        rec = {
+            "line_id": ln["id"],
+            "file": fname,
+            "exists": bool(real),
+            "path": str(real) if real else None,
+            "measured_sec": measured,
+            "start_sec": ln.get("start_sec"),
+            "text": ln.get("text"),
+        }
+        dur = detail.get("duration_sec")
+        if not real:
+            out["ok"] = False
+            out["problems"].append({"type": "audio_missing", "message": f"音频文件不存在：{fname}"})
+        elif measured and dur:
+            start = ln.get("start_sec") or 0.0
+            span = dur - start
+            rec["available_sec"] = round(span, 3)
+            if span < measured:
+                out["ok"] = False
+                out["problems"].append({
+                    "type": "duration_short",
+                    "message": f"时长不足：可用 {span:.2f}s ＜ 音频 {measured}s",
+                    "suggestion": f"建议 duration ≥ {start + measured + 0.2:.1f}s",
+                })
+        out["audio"] = rec
+    return out
+
+
+# ---------------- 存在性校验 ----------------
+
+def validate_materials(shot_id: int) -> dict:
+    b = shot_service.get_shot(shot_id)
+    if not b:
+        return {"ok": False, "problems": [{"type": "no_shot", "message": "镜头不存在"}]}
+    problems = []
+    for side, label in (("video_refs", "视频侧"), ("image_refs", "分镜图侧")):
+        for r in b.get(side) or []:
+            nm = r.get("file_name")
+            if not nm or r.get("is_placeholder"):
+                continue
+            if not r.get("file_exists"):
+                problems.append({
+                    "type": "ghost_ref", "side": side, "slot": r.get("slot_index"),
+                    "message": f"{label}第 {r.get('slot_index')} 位文件不存在：{nm}",
+                    "suggestion": "补齐文件或修正引用名",
+                })
+    line = (b.get("dialog_lines") or [None])[0]
+    if line and line.get("audio_file"):
+        real = file_store.resolve(line["audio_file"], b.get("project"))
+        if not real:
+            problems.append({
+                "type": "audio_missing",
+                "message": f"音频不存在：{line['audio_file']}",
+                "suggestion": "重新挂上音频素材，或修正文件名",
+            })
+    return {"ok": not problems, "problems": problems}
+
+
+# ---------------- 时间轴合成 ----------------
+
+def compose_episode(episode_id: int, out_path: str | Path | None = None, reencode: bool = True) -> dict:
+    """按镜序把成片视频拼成整集。"""
+    clips = db.query(
+        """SELECT c.*, s.shot_code FROM timeline_clips c
+           LEFT JOIN shots s ON s.id = c.shot_id
+           WHERE c.episode_id=? AND c.enabled=1 AND c.track_type='video'
+           ORDER BY c.sort_order, c.id""",
+        (episode_id,),
+    )
+    if not clips:
+        # 退路：直接用各镜已采纳的成片
+        rows = db.query(
+            """SELECT s.id AS shot_id, s.shot_code, s.sort_order, t.result
+               FROM shots s JOIN task_links l ON l.target_kind='shot' AND l.target_id=s.id
+               JOIN generation_tasks t ON t.id=l.task_id
+               WHERE s.episode_id=? AND t.task_kind='video_generation' AND t.status='succeeded'
+               ORDER BY s.sort_order, t.id DESC""",
+            (episode_id,),
+        )
+        seen, clips = set(), []
+        for r in rows:
+            if r["shot_id"] in seen:
+                continue
+            seen.add(r["shot_id"])
+            clips.append({"file_path": r["shot_code"], "shot_id": r["shot_id"], "shot_code": r["shot_code"]})
+
+    paths: list[str] = []
+    ep = db.query_one("SELECT * FROM episodes WHERE id=?", (episode_id,))
+    project = db.query_one("SELECT * FROM projects WHERE id=?", (ep["project_id"],)) if ep else None
+    for c in clips:
+        fp = c.get("file_path")
+        if not fp:
+            continue
+        p = Path(fp)
+        if not p.exists():
+            # 用镜号在视频目录里找
+            code = c.get("shot_code")
+            found = None
+            for d in (Path(project.get("video_dir") or "."),):
+                if not d.exists():
+                    continue
+                for nm in naming.keyframe_names(code or "", ep["number"] if ep else 1):
+                    for ext in (".mp4", ".mov"):
+                        cand = d / (Path(nm).stem + ext)
+                        if cand.exists():
+                            found = cand
+                            break
+            p = found
+        if p and Path(p).exists():
+            paths.append(str(p))
+    if not paths:
+        raise HookError("没有可合成的视频片段（先出片或建立时间轴）")
+
+    if out_path is None:
+        ep_num = ep["number"] if ep else 1
+        out_dir = Path(project.get("video_dir") or ".") if project else Path(".")
+        out_path = out_dir / f"第{ep_num}集_合成.mp4"
+    out = Path(out_path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+
+    with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as f:
+        for p in paths:
+            f.write(f"file '{p.replace(chr(92), '/')}'\n")
+        listfile = f.name
+
+    ff = ffmpeg_exe()
+    args = [ff, "-y", "-f", "concat", "-safe", "0", "-i", listfile]
+    if reencode:
+        args += ["-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p",
+                 "-c:a", "aac", "-b:a", "192k", "-r", "24", "-movflags", "+faststart"]
+    else:
+        args += ["-c", "copy"]
+    args.append(str(out))
+    r = _run(args, timeout=3600)
+    Path(listfile).unlink(missing_ok=True)
+    if r.returncode != 0 or not out.exists():
+        raise HookError(f"合成失败：{(r.stderr or '')[-500:]}")
+    info = file_store.probe(out)
+    file_store.index_file(out)
+    return {"output": str(out), "clips": len(paths), "duration_sec": info.get("duration_sec"),
+            "size_bytes": info.get("size_bytes")}
+
+
+# ---------------- 8bit 规范转码 ----------------
+
+def normalize_8bit(src: str | Path, dst: str | Path | None = None) -> Path:
+    """把视频转成全片统一规格（8bit/h264/yuv420p/24fps），不覆盖原文件。"""
+    s = Path(src)
+    if not s.exists():
+        raise HookError(f"源文件不存在：{s}")
+    d = Path(dst) if dst else s.with_name(f"{s.stem}_8bit{s.suffix}")
+    ff = ffmpeg_exe()
+    r = _run(
+        [ff, "-y", "-i", str(s), "-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p",
+         "-crf", "18", "-r", "24", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(d)],
+        timeout=3600,
+    )
+    if r.returncode != 0 or not d.exists():
+        raise HookError(f"转码失败：{(r.stderr or '')[-400:]}")
+    return d

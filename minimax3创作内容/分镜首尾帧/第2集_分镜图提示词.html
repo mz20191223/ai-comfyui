@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第2集分镜图提示词 — 全部21镜头</title>
+<style>
+  :root {
+    --bg: #0d0d12;
+    --panel: #16161e;
+    --border: #2a2a35;
+    --accent: #d4a017;
+    --accent-glow: #f0c040;
+    --text: #e0e0e8;
+    --text-dim: #8888a0;
+    --code-bg: #1a1a24;
+    --red: #e84545;
+    --green: #4ec970;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
+    line-height: 1.7;
+    padding: 40px 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 28px; color: var(--accent-glow); border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 8px; }
+  .subtitle { color: var(--text-dim); font-size: 14px; margin-bottom: 32px; }
+  h2 { font-size: 22px; color: var(--accent); margin: 36px 0 16px; padding-left: 14px; border-left: 4px solid var(--accent); }
+  h3 { font-size: 17px; color: var(--text); margin: 20px 0 10px; display: flex; align-items: center; gap: 8px; }
+  h3 .tag { font-size: 12px; padding: 2px 10px; border-radius: 4px; font-weight: 600; }
+  .tag-storyboard { background: rgba(212,160,23,0.15); color: var(--accent-glow); border: 1px solid rgba(212,160,23,0.3); }
+  .scene-desc { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin: 8px 0 12px; font-size: 14px; color: var(--text-dim); }
+  .scene-desc b { color: var(--text); }
+  .prompt-box { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 0; margin: 8px 0 24px; overflow: hidden; }
+  .prompt-header { background: rgba(212,160,23,0.08); border-bottom: 1px solid var(--border); padding: 8px 16px; font-size: 13px; color: var(--text-dim); display: flex; justify-content: space-between; align-items: center; }
+  .prompt-header .platform { color: var(--accent); font-weight: 600; }
+  .prompt-body { padding: 14px 16px; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; color: #c8c8d8; white-space: pre-wrap; word-break: break-word; line-height: 1.6; }
+  .ref-note { background: rgba(212,160,23,0.06); border: 1px dashed rgba(212,160,23,0.3); border-radius: 8px; padding: 12px 18px; margin: 16px 0; font-size: 13px; color: var(--text-dim); }
+  .ref-note b { color: var(--accent); }
+  .ref-upload { background: rgba(78,201,112,0.08); border: 1px solid rgba(78,201,112,0.25); border-radius: 8px; padding: 10px 16px; margin: 8px 0 12px; font-size: 14px; color: var(--green); }
+  .ref-upload b { color: #6dd88a; }
+  .ref-upload code { background: rgba(78,201,112,0.12); padding: 2px 8px; border-radius: 3px; font-size: 13px; color: #8de8a0; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+  .section-tag { display: inline-block; font-size: 12px; padding: 2px 10px; border-radius: 4px; font-weight: 600; margin-left: 12px; }
+  .section-golden { background: rgba(212,160,23,0.15); color: var(--accent-glow); border: 1px solid rgba(212,160,23,0.3); }
+  .section-memory { background: rgba(78,201,112,0.15); color: var(--green); border: 1px solid rgba(78,201,112,0.3); }
+  .section-loop { background: rgba(0,150,255,0.15); color: #6090ff; border: 1px solid rgba(0,150,255,0.3); }
+  .section-permission { background: rgba(160,80,255,0.15); color: #b080ff; border: 1px solid rgba(160,80,255,0.3); }
+  .section-final { background: rgba(255,50,50,0.15); color: #ff6060; border: 1px solid rgba(255,50,50,0.3); }
+</style>
+</head>
+<body>
+
+<h1>第2集 · 分镜图提示词</h1>
+<p class="subtitle">《大圣协议：程序员终极幻想》第2集 | 我这一棒，叫代码重构 | 21个镜头 | 每镜头1张分镜图</p>
+
+<div class="ref-note">
+  <b>角色锁定关键词（已内置每条提示词）：</b><br><br>
+  <b>过客（金甲形态）：</b>28-year-old East Asian male, square jawline, gaunt face, prominent dark purple-brown circles under eyes, short messy black hair with M-shaped hairline, narrow inner double eyelids, thin lips. Wearing golden armor composed of luminous code circuits, server interface ports, and mythical armor plates, with a black lanyard and white employee ID badge "过客 ByteFly BF-1024" visible on chest. <br><br>
+  <b>小七：</b>Small golden monkey-shaped debugging assistant, approximately 30cm tall, wearing a mini employee ID badge, holding a miniature keyboard with glowing keys, luminous golden fur, agile quick movements, expressive face.<br><br>
+  <b>内存黑洞王：</b>Massive hulking humanoid figure, body covered with broken code fragments and data debris, a swirling black hole vortex in the abdomen consuming all light, floating in dark space, purple-black energy tendrils extending from the body.<br><br>
+  <b>死循环妖：</b>Identical humanoid figures with pale skin, same exaggerated expression (wide grin, empty eyes), each holding a red ERROR sign, endlessly duplicating, filling the screen with clones, wearing torn gray code-lined robes.<br><br>
+  <b>权限魅影：</b>Semi-transparent black mist with a humanoid silhouette, face consisting only of a pair of constantly shifting login authentication eyes, wearing a crown of swirling black mist, body made of stolen permission strings and audit logs, flickering in and out of visibility.<br><br>
+  <b>终极Bug魔王：</b>Giant ape-monster fused with server cluster hardware, body composed of dark code and server racks, chest has a constantly flashing red "ROOT" directory icon, massive hands, eyes glowing deep red, surrounded by red alert code rain.
+</div>
+
+<div class="ref-note">
+  <b>使用说明：</b>每镜头出1张分镜图（关键构图帧），上传到可灵作为参考图 + 视频过渡提示词中的描述，生成5秒视频。<br>
+  <b>参考图上传顺序：</b>按提示中的 <code>Image 1/2/3...</code> 顺序上传。
+</div>
+
+<!-- ==================== 章节一：金甲觉醒 ==================== -->
+<h2>章节一 · 金甲觉醒 <span class="section-tag section-golden">镜头1-4</span></h2>
+
+<!-- 镜头01 -->
+<h3>镜头01 · 代码世界坠落 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>代码星河 · 金色裂缝 | 过客从金色裂缝中坠落，金甲正在形成，远处服务器山脉和根目录天宫。<br>
+  <b>角色：</b>过客（金甲形态）
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: 28-year-old East Asian male, square jawline, gaunt face, prominent dark purple-brown circles under eyes, short messy black hair with M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor composed of luminous code circuits and server interface ports, black lanyard with white ID badge "过客 ByteFly BF-1024" on chest.<br><br>
+Vertical 9:16 cinematic storyboard frame. Ultra-wide establishing shot, mid-fall composition. Guoke (过客) is falling through a massive golden crack in the starry code sky, his body partially wrapped in golden armor mid-formation. Code circuits wrap around his arms and torso. One hand reaches out toward floating code characters. Below him, server rack mountains stretch into the distance, a massive "ROOT DIRECTORY" palace floats on the horizon. Golden light from the crack illuminates the scene. Cinematic lighting, photorealistic CGI, tech-noir aesthetic. 8k resolution.</div>
+</div>
+
+<!-- 镜头02 -->
+<h3>镜头02 · 小七登录 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>代码节点平台 | 小七从日志串中探出头，抱着键盘，绕过过客肩膀。<br>
+  <b>角色：</b>过客（金甲形态）、小七
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 小七_角色参考图.jpg</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor, ID badge. Xiao Qi - small golden monkey debugging assistant, 30cm tall, mini ID badge, miniature keyboard, golden fur.<br><br>
+Vertical 9:16 cinematic storyboard frame. Medium shot, warm friendly composition. Guoke (过客) stands on a golden node platform, looking slightly surprised. Xiao Qi (小七) sits on his shoulder, holding a miniature keyboard, golden fur glowing, reaching down to scan his employee ID badge. A beam of light from the keyboard scans the badge text "过客 ByteFly BF-1024". Floating log text streams cross the foreground. Server mountains in background. Golden code particles float around. Warm golden lighting, playful atmosphere. Photorealistic CGI. 8k resolution.</div>
+</div>
+
+<!-- 镜头03 -->
+<h3>镜头03 · 金箍棒亮相 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>代码节点平台 | 代码编辑器在手中折叠拉伸变成金箍棒，棒身浮现"REFACTOR"。<br>
+  <b>角色：</b>过客（金甲形态）
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: 28-year-old East Asian male, square jawline, gaunt face, prominent dark purple-brown circles under eyes, short messy black hair with M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor, ID badge "过客 ByteFly BF-1024".<br><br>
+Vertical 9:16 cinematic storyboard frame. Medium close-up, dramatic reveal. Guoke (过客) holds the fully formed golden staff (Ruyi Jingu Bang) vertically in front of him. The staff is wrapped in glowing code circuits, with the word "REFACTOR" floating along its length in golden light. Golden armor reflects the staff's warm glow. His eyes look at the staff with wonder. Dark code-world background with floating code particles. The staff extends from bottom to top of frame. Cinematic lighting, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<!-- 镜头04 -->
+<h3>镜头04 · 三魔宣战 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>代码天穹 | 三大Bug魔头同时出现在天空，向过客宣战。<br>
+  <b>角色：</b>过客（金甲形态）、内存黑洞王、死循环妖、权限魅影
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 内存黑洞王_角色参考图.jpg, Image 3 = 死循环妖_角色参考图.jpg, Image 4 = 权限魅影_角色参考图.jpg</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor, ID badge. Memory Black Hole King - massive figure, black hole vortex abdomen. Infinite Loop Demon - identical clones, wide grins. Permission Phantom - black mist, shifting eyes, mist crown.<br><br>
+Vertical 9:16 cinematic storyboard frame. Low angle epic wide shot from behind Guoke (过客), looking up at the code sky. Three massive Bug demons appear: Memory Black Hole King (内存黑洞王) floats in a dark vortex on the left, Infinite Loop Demon (死循环妖) splits into a sea of clones across the center, Permission Phantom (权限魅影) forms a towering black mist crown on the right. Guoke stands small in the foreground, golden staff gripped in hand, body tense. Code sky background, dramatic storm clouds of data. Cinematic lighting, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<hr>
+
+<!-- ==================== 章节二：内存重构 ==================== -->
+<h2>章节二 · 金箍棒·内存重构 <span class="section-tag section-memory">镜头5-8</span></h2>
+
+<!-- 镜头05 -->
+<h3>镜头05 · 黑洞区吞噬 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>内存黑洞区 | 数据被吸入黑洞，过客金甲被引力拉扯，握棒稳住身形。<br>
+  <b>角色：</b>过客（金甲形态）、内存黑洞王
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 内存黑洞王_角色参考图.jpg</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor, ID badge. Memory Black Hole King - massive figure, black hole vortex abdomen, code fragments on body.<br><br>
+Vertical 9:16 cinematic storyboard frame. Wide shot, warped gravity perspective. Memory Black Hole King (内存黑洞王) floats center frame, his abdominal black hole sucking in data - user avatars, order records, payment data flow like asteroids into the void. Guoke (过客) at the edge of frame, golden armor being pulled by dark energy, one hand raised to shield from flying debris, the other gripping his golden staff planted in the ground for stability. Dark purple lighting, gravitational lensing effect. Cinematic, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<!-- 镜头06 -->
+<h3>镜头06 · 火眼金睛·引用链 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>黑洞内部（主观视角） | 过客瞳孔亮金，看到对象引用链形成闭环。<br>
+  <b>角色：</b>过客（金甲形态）
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: 28-year-old East Asian male, square jawline, gaunt face, prominent dark purple-brown circles under eyes, short messy black hair with M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor, ID badge.<br><br>
+Vertical 9:16 cinematic storyboard frame. Subjective POV shot from Guoke's (过客) perspective. Inside the black hole, the scene reveals a complex web of object reference chains - glowing orange arrows forming closed loops, each arrow pointing to a circular node. The chains are tangled and redundant. A small golden reflection of these chains can be seen in Guoke's eye in the bottom corner (self-reference). Dark background with golden/orange wireframe lines. Data visualization aesthetic. Cinematic lighting, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<!-- 镜头07 -->
+<h3>镜头07 · 第一次反击 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>黑洞区 | 过客挥棒敲击错误引用链，黑洞腹部出现裂痕。<br>
+  <b>角色：</b>过客（金甲形态）、内存黑洞王
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 内存黑洞王_角色参考图.jpg</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor, ID badge. Memory Black Hole King - massive figure, black hole vortex abdomen, now cracking.<br><br>
+Vertical 9:16 cinematic storyboard frame. Medium action shot, dynamic side angle. Guoke (过客) swings the golden staff sideways, striking three glowing reference chains in the air. The chains are made of orange code lines, visibly breaking at the point of impact, golden sparks flying. Memory Black Hole King (内存黑洞王) in the background reacts in shock, the first crack appearing across his abdominal black hole - golden light seeping through. Motion blur on staff swing. Cinematic lighting, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<!-- 镜头08 -->
+<h3>镜头08 · 内存重构完成 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>黑洞核心 | 金箍棒插入黑洞，黑色漩涡变绿色数据流，数据回归原位。<br>
+  <b>角色：</b>过客（金甲形态）、内存黑洞王正在压缩
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 内存黑洞王_角色参考图.jpg</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor, ID badge. Memory Black Hole King - massive figure, shrinking, being compressed.<br><br>
+Vertical 9:16 cinematic storyboard frame. Wide triumphant shot. Guoke (过客) stands center, golden staff raised high. The black hole has transformed into organized green data streams flowing outward. Memory Black Hole King (内存黑洞王) is being compressed into a small cache file on the ground, shrinking rapidly. All previously swallowed data (user avatars, order records) returns to their original positions in organized green streams. Green and gold color palette. Cinematic lighting, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<hr>
+
+<!-- ==================== 章节三：跳出循环 ==================== -->
+<h2>章节三 · 筋斗云·跳出死循环 <span class="section-tag section-loop">镜头9-13</span></h2>
+
+<!-- 镜头09 -->
+<h3>镜头09 · 死循环迷宫坠落 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>循环迷宫 | 地面裂开，过客坠入重复代码迷宫，被死循环妖包围。<br>
+  <b>角色：</b>过客（金甲形态）、死循环妖
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 死循环妖_角色参考图.jpg</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor, ID badge. Infinite Loop Demon - identical clones, wide grins, red ERROR signs.<br><br>
+Vertical 9:16 cinematic storyboard frame. Top-down perspective, claustrophobic composition. Guoke (过客) has fallen into a maze of repeating code walls, landing in the center. The walls cycle the word "RETRY" endlessly. Infinite Loop Demon (死循环妖) clones line the maze edges and corridors, all with the same wide grin, each holding a red ERROR sign, charging toward him. Guoke grips his golden staff, ready to fight. Dark blue-purple lighting, oppressive repeating pattern environment. Cinematic, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<!-- 镜头10 -->
+<h3>镜头10 · 分身压迫 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>循环迷宫 | 过客被无数分身包围，金甲出现裂纹。<br>
+  <b>角色：</b>过客（金甲形态）、死循环妖
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 死循环妖_角色参考图.jpg</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor (with small cracks appearing), ID badge. Infinite Loop Demon - countless identical clones, wide grins, surrounding.<br><br>
+Vertical 9:16 cinematic storyboard frame. Medium shot, tense surround composition. Guoke (过客) is pushed to the center of the maze, surrounded by countless Infinite Loop Demon (死循环妖) clones pressing inward from all sides. His golden armor shows small cracks. He breathes heavily, staff held defensively across his body, eyes scanning for an exit. The clones all grin identically. Dark blue-purple lighting, sweat on character's face, claustrophobic atmosphere. Cinematic, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<!-- 镜头11 -->
+<h3>镜头11 · 跳出循环的决定 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>循环迷宫 | 过客看见远处金色云团，决定跳出循环。<br>
+  <b>角色：</b>过客（金甲形态）、小七
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 小七_角色参考图.jpg</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor (cracked), ID badge. Xiao Qi - small golden monkey, mini ID badge, golden fur.<br><br>
+Vertical 9:16 cinematic storyboard frame. Close-up of Guoke's (过客) face, looking upward and to the distance. In the background, far above the maze walls, a golden cloud made of computing nodes glows in the distance. Hope and determination in his eyes. Xiao Qi (小七) sits on his shoulder, also looking up, pointing with her tiny hand toward the golden cloud. Maze walls and clones blurred in the foreground. Rack focus effect. Cinematic lighting, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<!-- 镜头12 -->
+<h3>镜头12 · 筋斗云切换节点 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>迷宫 → 天空 | 筋斗云聚合托起过客，冲出迷宫顶部。<br>
+  <b>角色：</b>过客（金甲形态）
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: 28-year-old East Asian male, square jawline, gaunt face, prominent dark purple-brown circles under eyes, short messy black hair with M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor, ID badge.<br><br>
+Vertical 9:16 cinematic storyboard frame. Low angle action shot, looking up. Guoke (过客) rides a golden cloud (筋斗云) as it bursts through the top of the maze, trailing a golden light arc behind him. Below him, the maze shrinks, countless Infinite Loop Demon (死循环妖) clones look up helplessly. The sky above is open golden code space. Guoke stands on the cloud, staff in hand, triumphant expression. Golden trajectory line across the frame. Cinematic, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<!-- 镜头13 -->
+<h3>镜头13 · 写入终止条件 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>循环核心 | 过客从云端俯冲，写入终止条件，分身全部冻结。<br>
+  <b>角色：</b>过客（金甲形态）、死循环妖
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 死循环妖_角色参考图.jpg</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor, ID badge. Infinite Loop Demon - clones frozen in place, wide grins frozen.<br><br>
+Vertical 9:16 cinematic storyboard frame. Wide shot, moment of victory. Guoke (过客) stands in the center of the maze, staff embedded in the core loop. Golden text "IF SUCCESS = TRUE, THEN BREAK" is written into the code, glowing brightly. All Infinite Loop Demon (死循环妖) clones are frozen mid-action, their expressions stuck in wide grins. They begin layering over each other, collapsing into a single small error dialog box. Golden light spreads from the core. Cinematic, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<hr>
+
+<!-- ==================== 章节四：权限追踪 ==================== -->
+<h2>章节四 · 火眼金睛·权限追踪 <span class="section-tag section-permission">镜头14-18</span></h2>
+
+<!-- 镜头14 -->
+<h3>镜头14 · 权限黑域降临 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>审计黑域 | 黑雾遮蔽代码世界，用户头像变问号，过客协议标识闪烁。<br>
+  <b>角色：</b>过客（金甲形态）、权限魅影
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 权限魅影_角色参考图.jpg</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor, ID badge. Permission Phantom - semi-transparent black mist, shifting login eyes, black mist crown.<br><br>
+Vertical 9:16 cinematic storyboard frame. Wide shot, black mist encroaching from all sides. The code world that was bright green is being consumed by dark fog. User avatars in the background turn into question marks. Guoke (过客) stands in the center, the "大圣协议" symbol on his chest flickering between gold and red. Permission Phantom (权限魅影) appears as a massive black mist silhouette in the background, only the shifting login authentication eyes visible. Ominous dark lighting, shrinking composition. Cinematic, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<!-- 镜头15 -->
+<h3>镜头15 · 火眼金睛开启 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>黑域内部 | 过客闭眼，金色光线从眼缝亮起，黑域被切成日志时间线。<br>
+  <b>角色：</b>过客（金甲形态）
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: 28-year-old East Asian male, square jawline, gaunt face, prominent dark purple-brown circles under eyes, short messy black hair with M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor, ID badge.<br><br>
+Vertical 9:16 cinematic storyboard frame. Extreme close-up of Guoke's (过客) face, eyes closed. Brilliant golden light rays emanate from between his closed eyelids, illuminating his face from within. The light casts warm highlights on his cheekbones and nose. In the background, the black mist is being sliced into countless log timeline streams by the golden light. Each timeline shows date/time stamps and audit trails. Three abnormal time points glow red: 01:47, 01:52, 01:59. Data visualization aesthetic. Cinematic, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<!-- 镜头16 -->
+<h3>镜头16 · 锁定异常路径 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>黑域 | 时间线追踪到三个异常调用汇入同一台隐形服务器。<br>
+  <b>角色：</b>过客（金甲形态）、权限魅影
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 权限魅影_角色参考图.jpg</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor, ID badge. Permission Phantom - semi-transparent black mist, shifting eyes.<br><br>
+Vertical 9:16 cinematic storyboard frame. Medium shot, Guoke (过客) stands in golden armor at the center of the black domain, holding his staff. Three golden code streams shoot from the tip of his staff, forming three tracking paths that converge toward a distant invisible server. The server is barely visible, cloaked in semi-transparent code. Permission Phantom (权限魅影) flickers in the background mist. Red countdown indicators (01:47, 01:52, 01:59) float along each path. Guoke stands in profile, face illuminated by golden light, expression focused. Camera at chest height, Guoke visible as the active subject. Cinematic, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<!-- 镜头17 -->
+<h3>镜头17 · 权限追踪 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>黑域 | 金色锁链缠住权限魅影，从隐藏服务器中拖出。<br>
+  <b>角色：</b>过客（金甲形态）、权限魅影
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 权限魅影_角色参考图.jpg</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor, ID badge. Permission Phantom - semi-transparent black mist, being dragged out, body made of stolen permission strings.<br><br>
+Vertical 9:16 cinematic storyboard frame. Medium action shot. Golden code chains shoot from Guoke's (过客) staff, wrapping around Permission Phantom (权限魅影) and dragging it out of the invisible server. The phantom's black mist body stretches and distorts, revealing its true form - a body made of stolen permission strings and audit logs. Guoke stands in the foreground, staff pulling the chains, expression focused. Dark background with golden chain light creating diagonal lines. Cinematic, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<!-- 镜头18 -->
+<h3>镜头18 · 第三个Bug退出 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>黑域 | 黑域重新亮起，权限魅影被压缩为透明日志链，三处绿色状态点亮。<br>
+  <b>角色：</b>过客（金甲形态）
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: 28-year-old East Asian male, square jawline, gaunt face, prominent dark purple-brown circles under eyes, short messy black hair with M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor, ID badge.<br><br>
+Vertical 9:16 cinematic storyboard frame. Wide shot, restoration moment. The black mist has completely cleared, the code world bright again. Permission Phantom (权限魅影) is compressed into a single transparent audit log chain floating in the air. Three green status indicators light up in sequence across the top of the frame. Guoke (过客) stands in the center, golden armor glowing, staff resting on his shoulder. Clean green data flowing around, organized code lines. Cinematic, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<hr>
+
+<!-- ==================== 章节五：合体危机 ==================== -->
+<h2>章节五 · 三魔合体·终极Boss <span class="section-tag section-final">镜头19-21</span></h2>
+
+<!-- 镜头19 -->
+<h3>镜头19 · 胜利假象 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>代码世界 | 三个Bug文件悬浮，突然震动，红色脉冲出现。<br>
+  <b>角色：</b>过客（金甲形态）、小七
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 小七_角色参考图.jpg</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor, ID badge. Xiao Qi - small golden monkey, mini ID badge, golden fur, alarmed expression.<br><br>
+Vertical 9:16 cinematic storyboard frame. Medium close-up, sudden tension. The code world is bright green, but three compressed Bug files floating in front of Guoke (过客) suddenly vibrate violently, error codes connecting between them. Guoke reacts with alarm, body tensing. Xiao Qi (小七) on his shoulder looks shocked, fur bristling. The background flickers with a faint red pulse. The peaceful green scene is interrupted by red warning light. Cinematic, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<!-- 镜头20 -->
+<h3>镜头20 · 根目录裂开 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>根目录天宫 | 天宫底部红色裂缝蔓延，三个文件被吸入，天空变红。<br>
+  <b>角色：</b>过客（金甲形态）、小七
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 小七_角色参考图.jpg</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor, ID badge. Xiao Qi - small golden monkey, golden fur, scared expression.<br><br>
+Vertical 9:16 cinematic storyboard frame. Low angle wide shot, looking up at the Root Directory palace. A massive red crack splits open at the base of the palace, spreading upward like veins across the entire sky. The three Bug files are being sucked into the crack. Guoke (过客) and Xiao Qi (小七) stand tiny in the foreground, looking up in horror. The sky is turning from blue to deep red, everything bathed in crimson. Ominous red alert atmosphere. Cinematic, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<!-- 镜头21 -->
+<h3>镜头21 · 终极Bug魔王上线 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>根目录天宫 | 三魔融合成终极魔王，过客被气浪掀飞，金甲开裂。<br>
+  <b>角色：</b>过客（金甲形态，裂纹）、终极Bug魔王
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 终极Bug魔王_角色参考图.jpg</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor (heavily cracked), ID badge still visible. Ultimate Bug Demon King - giant ape fused with server racks, red "ROOT" on chest, red eyes, massive hand raised.<br><br>
+Vertical 9:16 cinematic storyboard frame. Epic wide shot, cliffhanger composition. The Ultimate Bug Demon King (终极Bug魔王) towers in the background - a giant ape-monster fused with server cluster hardware, red "ROOT" glowing on its chest, massive hand raised. Guoke (过客) is on the ground in the foreground, pushed back by the shockwave, golden armor heavily cracked, but a hint of gold still glowing in his eyes as he looks up defiantly. Xiao Qi (小七) is grabbed by a dark data hand in the midground. Red alert text "ROOT ACCESS GRANTED / SYSTEM FAILURE" overlays the red sky. Dramatic, 8k resolution.</div>
+</div>
+
+</body>
+</html>

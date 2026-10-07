@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第3集 · 视频过渡提示词 — Minimax H3</title>
+<style>
+  :root { --bg: #0d0d12; --panel: #16161e; --border: #2a2a35; --accent: #d4a017; --accent-glow: #f0c040; --text: #e0e0e8; --text-dim: #8888a0; --code-bg: #1a1a24; --green: #4ec970; --red: #e84545; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif; line-height: 1.7; padding: 40px 20px; max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 26px; color: var(--accent-glow); border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 8px; }
+  .subtitle { color: var(--text-dim); font-size: 14px; margin-bottom: 32px; }
+  h2 { font-size: 20px; color: var(--accent); margin: 36px 0 12px; padding-left: 14px; border-left: 4px solid var(--accent); display: flex; align-items: center; gap: 10px; }
+  h2 .time { font-size: 13px; color: var(--text-dim); font-weight: normal; background: var(--panel); padding: 2px 10px; border-radius: 4px; border: 1px solid var(--border); }
+  .scene-desc { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 18px; margin: 8px 0 12px; font-size: 14px; color: var(--text-dim); }
+  .scene-desc b { color: var(--text); }
+  .prompt-box { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; margin: 8px 0 24px; overflow: hidden; }
+  .prompt-header { background: rgba(212,160,23,0.08); border-bottom: 1px solid var(--border); padding: 8px 16px; font-size: 13px; color: var(--text-dim); display: flex; justify-content: space-between; align-items: center; }
+  .prompt-header .platform { color: var(--accent); font-weight: 600; }
+  .prompt-header .dur { color: var(--green); font-size: 12px; }
+  .prompt-body { padding: 14px 16px; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; color: #c8c8d8; white-space: pre-wrap; word-break: break-word; line-height: 1.6; }
+  .ref-note { background: rgba(212,160,23,0.06); border: 1px dashed rgba(212,160,23,0.3); border-radius: 8px; padding: 12px 18px; margin: 16px 0; font-size: 13px; color: var(--text-dim); }
+  .ref-note b { color: var(--accent); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+  .section-tag { display: inline-block; font-size: 12px; padding: 2px 10px; border-radius: 4px; font-weight: 600; margin-left: 12px; }
+  .section-fall { background: rgba(255,50,50,0.15); color: #ff6060; border: 1px solid rgba(255,50,50,0.3); }
+  .section-reality { background: rgba(0,150,255,0.15); color: #6090ff; border: 1px solid rgba(0,150,255,0.3); }
+  .section-truth { background: rgba(212,160,23,0.15); color: var(--accent-glow); border: 1px solid rgba(212,160,23,0.3); }
+  .section-final { background: rgba(78,201,112,0.15); color: var(--green); border: 1px solid rgba(78,201,112,0.3); }
+  .section-ending { background: rgba(160,80,255,0.15); color: #b080ff; border: 1px solid rgba(160,80,255,0.3); }
+  .usage-guide { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 20px 24px; margin: 16px 0; }
+  .usage-guide h4 { color: var(--accent-glow); font-size: 16px; margin-bottom: 10px; }
+  .usage-guide ol { padding-left: 20px; }
+  .usage-guide li { margin: 6px 0; font-size: 14px; color: var(--text-dim); }
+  .usage-guide code { background: var(--code-bg); padding: 2px 6px; border-radius: 3px; font-size: 13px; color: var(--accent-glow); }
+</style>
+</head>
+<body>
+
+<h1>第3集 · 视频过渡提示词</h1>
+<p class="subtitle">《大圣协议：程序员终极幻想》第3集 | Minimax H3 图生视频 | 上传分镜图 + 粘贴下方过渡描述</p>
+
+<div class="usage-guide">
+  <h4>使用说明</h4>
+  <ol>
+    <li>Minimax H3「图生视频」→ 上传对应镜头的 <b>分镜图</b></li>
+    <li>粘贴下方 <b>过渡描述</b>（仅描述动作/镜头运动）</li>
+    <li>时长 <b>5秒</b>，分辨率 <b>720p</b>（9:16竖屏）</li>
+  </ol>
+</div>
+
+<!-- ==================== 场景一：根目录崩塌 ==================== -->
+<h2>场景一 · 绝境开局 <span class="section-tag section-fall">镜头1-4</span></h2>
+
+<h2>镜头01 · 根目录崩塌 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>红色代码暴雨 → 魔王遮天 → 过客半跪，金甲开裂<br>
+  <b>角色：</b>过客（金甲裂纹）、终极Bug魔王
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Minimax H3 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Camera slowly pushes down from the red code sky, revealing the collapsing Root Directory palace. Red code rain falls continuously. Ultimate Bug Demon King towers in the upper frame, chest ROOT pulsing. Guoke kneels on broken platform, golden armor cracked, staff lying nearby. Camera settles on Guoke's defeated posture. Slow oppressive reveal, 5 seconds.</div>
+</div>
+
+<h2>镜头02 · 删除失败 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>过客跃起击碎ROOT → 无数相同ROOT重生 → 震惊<br>
+  <b>角色：</b>过客、小七、终极Bug魔王
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Minimax H3 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Guoke leaps upward, swinging staff at the ROOT directory. ROOT shatters on impact. Pause - then dozens of identical ROOT directories regrow from the cracks. Xiao Qi reacts with alarm from the dark data hand. Guoke's expression shifts from triumph to shock. Camera pulls back to reveal the full scale of regeneration. 5 seconds.</div>
+</div>
+
+<h2>镜头03 · 三种能力反扑 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>黑洞吞噬 + 分身爬出 + 黑雾缠身 → 三股力量同时击中过客<br>
+  <b>角色：</b>过客、终极Bug魔王
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Minimax H3 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Three attacks converge simultaneously. Guoke faces the demon king, trying to block. Black hole vortex opens from demon king's palm on the left. Clones crawl out of the ground below. Dark mist tendrils wrap around Guoke from the right. Guoke is overwhelmed and thrown backward, his face showing shock. Camera stays on Guoke's expression as he's hit. Rapid chaotic motion, 5 seconds.</div>
+</div>
+
+<h2>镜头04 · 主角跌入低谷 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>被击飞落地 → 撑地起身 → 金甲裂纹扩大<br>
+  <b>角色：</b>过客（金甲裂纹）、终极Bug魔王
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Minimax H3 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Guoke crashes onto the broken platform, slides across the surface. He slowly pushes himself up onto one knee, using his staff for support. Golden armor cracks spread across his chest. ID badge half-covered by dark mist. Demon king looms in background. Camera slowly pushes in on Guoke's exhausted but defiant face. 5 seconds.</div>
+</div>
+
+<hr>
+
+<!-- ==================== 场景二：现实世界 ==================== -->
+<h2>场景二 · 现实世界·最后窗口 <span class="section-tag section-reality">镜头5-7</span></h2>
+
+<h2>镜头05 · 现实世界同步崩溃 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>大屏全红 → 产品经理要拔电源 → 林岚拦住<br>
+  <b>角色：</b>林岚、产品经理、过客（工位）
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Minimax H3 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Wide shot of server room. Large monitor wall shows all services red. Product manager rushes toward Guoke's desk, reaching for the power cord. Lin Lan steps in front of him, blocking his path with her body, expression fierce and determined. Product manager stops, frustrated. Guoke slumped unconscious at desk in background. No dialogue text, no speech bubbles, no text overlays. Red alert lights flash. Camera holds on the confrontation. 5 seconds.</div>
+</div>
+
+<h2>镜头06 · 林岚争取最后窗口 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>林岚与产品经理对峙 → 按住关机按钮 → "我担"<br>
+  <b>角色：</b>林岚、产品经理
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Minimax H3 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Medium shot of same server room. Lin Lan stands firm, one hand on the emergency shutdown button. Product manager points at the red screens, agitated. Camera slowly pushes in on Lin Lan's face. Her expression is calm but unyielding. No other people in the room. No dialogue text, no speech bubbles, no text overlays. 5 seconds.</div>
+</div>
+
+<h2>镜头07 · 六十秒倒计时 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>倒计时60秒 → 连接进度缓慢跳到2% → 林岚注视<br>
+  <b>角色：</b>林岚、过客（工位）
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Minimax H3 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Static split composition, same server room. Camera stays fixed. Left monitor shows "最后调试窗口 00:60" countdown, numbers slowly ticking down. Right side shows Guoke unconscious at desk, head on keyboard, screen showing "大圣协议连接中 - 2%" with progress bar barely moving. Lin Lan stands beside him, expression tense but hopeful, eyes fixed on the progress bar. Subtle motion only: countdown digits changing, progress bar slowly creeping. No light pushing, no camera movement. 5 seconds.</div>
+</div>
+
+<hr>
+
+<!-- ==================== 场景三：日志真相 ==================== -->
+<h2>场景三 · 真相回溯 <span class="section-tag section-truth">镜头8-13</span></h2>
+
+<h2>镜头08 · 过客改变策略 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>听到林岚声音 → 松开攻击姿态 → 面对日志深渊<br>
+  <b>角色：</b>过客、小七
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Minimax H3 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Close-up of Guoke, hearing Lin Lan's voice echo. His body language shifts from attack-ready to contemplative. Staff lowers. He turns to face the log abyss below. Xiao Qi trapped in mist nearby looks at him with concern. Camera slowly pulls back to reveal the vast ocean of log fragments. Golden light from below. 5 seconds.</div>
+</div>
+
+<h2>镜头09 · 恢复原始日志 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>手伸进日志碎片 → 拉出金色原始记录 → 小七帮忙拼接<br>
+  <b>角色：</b>过客、小七
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Minimax H3 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Guoke reaches his hand into the log abyss, fingers submerged in glowing data fragments. He pulls out a golden original log record. Xiao Qi floats beside him, grabbing a piece of log data with both hands. Golden light pulses from the recovered log. Camera slowly zoom in on the text becoming visible. 5 seconds.</div>
+</div>
+
+<h2>镜头10 · 日志时间线回溯 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>时间线高速倒退 → 五个关键时间点依次浮现<br>
+  <b>角色：</b>过客（主观视角）
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Minimax H3 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">POV subjective shot. Five timestamps cascade down the screen vertically: 01:47 → 01:48 → 01:52 → 01:56 → 01:59. Each timestamp appears with a clear "落盘" sound effect. Text color shifts from yellow to red as the chain progresses. Golden code lines connect them. Guoke's hands visible at bottom edge. 5 seconds.</div>
+</div>
+
+<h2>镜头11 · 隐藏提交记录 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>隐藏提交记录浮现 → 魔王第一次后退 → ROOT闪烁<br>
+  <b>角色：</b>过客、终极Bug魔王
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Minimax H3 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Guoke stands facing the Ultimate Bug Demon King directly, maintaining eye contact throughout. The hidden commit record floats between them: "为赶上线时间，临时跳过权限校验。TODO：后续修复。" Guoke's expression shifts to calm acceptance — he acknowledges his mistake. The Bug Demon King takes a step back for the first time, ROOT icon flickering unstably. Guoke does not turn away, stays facing the demon king. Camera stays fixed. 5 seconds.</div>
+</div>
+
+<h2>镜头12 · 真相投向现实 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>过客将日志投向天空 → 责任链同步出现在会议室大屏<br>
+  <b>角色：</b>过客、小七、林岚、产品经理
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Minimax H3 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Split scene. Guoke in code world throws the complete log chain upward, golden text spreading across the virtual sky. Same responsibility chain appears on the real-world monitor. Lin Lan saves the report. Product manager frozen. Golden log light illuminates both worlds. No dialogue text, no speech bubbles. Camera slowly pulls back. 5 seconds.</div>
+</div>
+
+<h2>镜头13 · 承认错误 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>过客不再防御 → 正面看向魔王 → 魔王第一次动摇<br>
+  <b>角色：</b>过客、终极Bug魔王
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Minimax H3 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Medium close-up. Guoke stands his ground, no longer defensive. He looks directly at the demon king. The king's three faces show surprise and retreat. Golden log light pushes back the dark mist. ID badge on Guoke's chest glows gold again. Camera slowly pushes in on Guoke's calm, firm expression. 5 seconds.</div>
+</div>
+
+<hr>
+
+<!-- ==================== 场景四：终极调试 ==================== -->
+<h2>场景四 · 如意金箍棒·终极调试 <span class="section-tag section-final">镜头14-17</span></h2>
+
+<h2>镜头14 · 根因修复权限生成 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>日志化成金色锁链 → 连接断裂金箍棒 → 文字变为"ROOT CAUSE FIX"<br>
+  <b>角色：</b>过客
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Minimax H3 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Golden chains rise from the log data, wrapping around the broken golden staff. The staff reconnects, golden light surging through the repair. Text on the staff changes from "REFACTOR" to "ROOT CAUSE FIX". Guoke grips the restored staff, golden code threads stitching his armor cracks. Camera slowly zooms in on the staff text. 5 seconds.</div>
+</div>
+
+<h2>镜头15 · 三项修复执行 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>筋斗云穿过分身 → 火眼金睛锁定ROOT → 小七贴上日志符文<br>
+  <b>角色：</b>过客、小七、终极Bug魔王
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Minimax H3 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Guoke rides golden cloud through clones. Eyes glow gold, locking onto the real ROOT. Xiao Qi presses a golden log talisman onto a fake ROOT directory. Three status indicators appear: PERMISSION CHECK, LOOP CONDITION, MEMORY RELEASE - all empty. Fast-paced action montage, 5 seconds.</div>
+</div>
+
+<h2>镜头16 · 金甲大圣虚影 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>身后浮现巨大金甲大圣虚影 → 金箍棒延伸成金色编辑光标<br>
+  <b>角色：</b>过客
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Minimax H3 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Extreme close-up of Guoke's hands on staff, then rapid pullback to ultra-wide. Massive golden Great Sage phantom appears behind him, towering into the sky. The staff extends upward into a giant golden cursor line reaching the Root Directory palace. Golden light radiates outward. Epic scale reveal. 5 seconds.</div>
+</div>
+
+<h2>镜头17 · 终极调试成功 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>金色光标从魔王头顶划到ROOT底部 → 三个状态全绿 → 魔王崩解<br>
+  <b>角色：</b>过客、终极Bug魔王
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Minimax H3 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Golden cursor slashes from demon king's head through ROOT. Three status indicators light up sequentially: PERMISSION CHECK: PASS → LOOP CONDITION: FIXED → MEMORY RELEASE: SUCCESS. All green. Demon king's body disintegrates into ordinary error messages. Guoke stands in foreground, staff raised, golden light. Victory. 5 seconds.</div>
+</div>
+
+<hr>
+
+<!-- ==================== 场景五：下班 ==================== -->
+<h2>场景五 · 系统绿灯，大圣下班 <span class="section-tag section-ending">镜头18</span></h2>
+
+<h2>镜头18 · 绿灯与下班彩蛋 <span class="time">5s</span></h2>
+<div class="scene-desc">
+  <b>动作：</b>过客醒来 → 大屏全绿 → 林岚递咖啡 → 彩蛋迷你Bug<br>
+  <b>角色：</b>过客（现实）、林岚、产品经理、迷你Bug
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">Minimax H3 · 过渡描述</span><span class="dur">5秒</span></div>
+  <div class="prompt-body">Guoke wakes up at his desk. Large monitor turns green row by row. Office lights come on. Lin Lan hands him a hot coffee. Product manager looks defeated in background. Camera slowly pushes in on Guoke's screen bottom-right corner. Tiny yellow bug icon peeks out, text appears: "检测到未知Bug，是否启动二次大圣协议？" Guoke looks back at screen. Warm morning light. 5 seconds.</div>
+</div>
+
+</body>
+</html>

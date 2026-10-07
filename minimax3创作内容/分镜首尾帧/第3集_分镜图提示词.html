@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第3集分镜图提示词 — 全部18镜头</title>
+<style>
+  :root { --bg: #0d0d12; --panel: #16161e; --border: #2a2a35; --accent: #d4a017; --accent-glow: #f0c040; --text: #e0e0e8; --text-dim: #8888a0; --code-bg: #1a1a24; --red: #e84545; --green: #4ec970; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif; line-height: 1.7; padding: 40px 20px; max-width: 1000px; margin: 0 auto; }
+  h1 { font-size: 28px; color: var(--accent-glow); border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 8px; }
+  .subtitle { color: var(--text-dim); font-size: 14px; margin-bottom: 32px; }
+  h2 { font-size: 22px; color: var(--accent); margin: 36px 0 16px; padding-left: 14px; border-left: 4px solid var(--accent); }
+  h3 { font-size: 17px; color: var(--text); margin: 20px 0 10px; display: flex; align-items: center; gap: 8px; }
+  h3 .tag { font-size: 12px; padding: 2px 10px; border-radius: 4px; font-weight: 600; }
+  .tag-storyboard { background: rgba(212,160,23,0.15); color: var(--accent-glow); border: 1px solid rgba(212,160,23,0.3); }
+  .scene-desc { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin: 8px 0 12px; font-size: 14px; color: var(--text-dim); }
+  .scene-desc b { color: var(--text); }
+  .prompt-box { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 0; margin: 8px 0 24px; overflow: hidden; }
+  .prompt-header { background: rgba(212,160,23,0.08); border-bottom: 1px solid var(--border); padding: 8px 16px; font-size: 13px; color: var(--text-dim); display: flex; justify-content: space-between; align-items: center; }
+  .prompt-header .platform { color: var(--accent); font-weight: 600; }
+  .prompt-body { padding: 14px 16px; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; color: #c8c8d8; white-space: pre-wrap; word-break: break-word; line-height: 1.6; }
+  .ref-note { background: rgba(212,160,23,0.06); border: 1px dashed rgba(212,160,23,0.3); border-radius: 8px; padding: 12px 18px; margin: 16px 0; font-size: 13px; color: var(--text-dim); }
+  .ref-note b { color: var(--accent); }
+  .ref-upload { background: rgba(78,201,112,0.08); border: 1px solid rgba(78,201,112,0.25); border-radius: 8px; padding: 10px 16px; margin: 8px 0 12px; font-size: 14px; color: var(--green); }
+  .ref-upload b { color: #6dd88a; }
+  .ref-upload code { background: rgba(78,201,112,0.12); padding: 2px 8px; border-radius: 3px; font-size: 13px; color: #8de8a0; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+  .section-tag { display: inline-block; font-size: 12px; padding: 2px 10px; border-radius: 4px; font-weight: 600; margin-left: 12px; }
+  .section-fall { background: rgba(255,50,50,0.15); color: #ff6060; border: 1px solid rgba(255,50,50,0.3); }
+  .section-reality { background: rgba(0,150,255,0.15); color: #6090ff; border: 1px solid rgba(0,150,255,0.3); }
+  .section-truth { background: rgba(212,160,23,0.15); color: var(--accent-glow); border: 1px solid rgba(212,160,23,0.3); }
+  .section-final { background: rgba(78,201,112,0.15); color: var(--green); border: 1px solid rgba(78,201,112,0.3); }
+  .section-ending { background: rgba(160,80,255,0.15); color: #b080ff; border: 1px solid rgba(160,80,255,0.3); }
+</style>
+</head>
+<body>
+
+<h1>第3集 · 分镜图提示词</h1>
+<p class="subtitle">《大圣协议：程序员终极幻想》第3集 | 如意金箍棒·终极调试 | 18个镜头 | 每镜头1张分镜图</p>
+
+<div class="ref-note">
+  <b>角色锁定关键词（已内置每条提示词）：</b><br><br>
+  <b>过客（金甲形态，裂纹版）：</b>28-year-old East Asian male, square jawline, gaunt face, prominent dark purple-brown circles under eyes, short messy black hair with M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor made of code circuits, now heavily cracked with visible damage. Black lanyard with white ID badge "过客 ByteFly BF-1024" on chest.<br><br>
+  <b>小七：</b>Small golden monkey-shaped debugging assistant, approximately 30cm tall, wearing a mini employee ID badge, holding a miniature keyboard with glowing keys, luminous golden fur, agile quick movements, expressive face.<br><br>
+  <b>终极Bug魔王：</b>Giant ape-monster fused with server cluster hardware, body composed of dark code and server racks, chest has a constantly flashing red "ROOT" directory icon, massive hands, eyes glowing deep red, surrounded by red alert code rain.<br><br>
+  <b>林岚：</b>28-year-old East Asian female, sharp short black hair, intelligent eyes, wearing a professional dark suit, standing with authority, calm and decisive expression, holding a tablet or standing by the server rack.<br><br>
+  <b>产品经理：</b>40-year-old East Asian male, slightly overweight, anxious expression, wearing a wrinkled light blue shirt with rolled-up sleeves, holding a phone, nervous and flustered demeanor.<br><br>
+  <b>迷你Bug（彩蛋）：</b>Tiny bug-like creature, approximately 8cm tall, round body with small antennae, glowing yellow warning icon color, peeking out from behind a screen corner, cute and mischievous expression.
+</div>
+
+<div class="ref-note">
+  <b>使用说明：</b>每镜头出1张分镜图（关键构图帧），上传到可灵作为参考图 + 视频过渡提示词，生成5秒视频。<br>
+  <b>参考图上传顺序：</b>按提示中的 <code>Image 1/2/3...</code> 顺序上传。<br>
+  <b>注意：</b>镜头01需承接第2集结尾——过客金甲开裂、金箍棒脱手、小七被黑雾数据手抓住。
+</div>
+
+<!-- ==================== 场景一：根目录崩塌 ==================== -->
+<h2>场景一 · 绝境开局 <span class="section-tag section-fall">镜头1-4</span></h2>
+
+<!-- 镜头01 -->
+<h3>镜头01 · 根目录崩塌 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>根目录天宫崩塌 · 红色代码暴雨 | 终极Bug魔王遮天，过客半跪，金甲裂纹，金箍棒脱手<br>
+  <b>角色：</b>过客（金甲裂纹）、终极Bug魔王
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 终极Bug魔王_角色参考图.jpg</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Image 1 = Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor heavily cracked, ID badge. Image 2 = Ultimate Bug Demon King - giant ape fused with server racks, red "ROOT" on chest, red eyes, massive hands.<br><br>
+Vertical 9:16 cinematic storyboard frame. Ultra-wide low angle shot, extreme vertical oppression. The Root Directory palace is collapsing, red code rain falling like a storm. Ultimate Bug Demon King (终极Bug魔王) fills the upper two-thirds of the frame, chest red "ROOT" icon pulsing. Guoke (过客) is at the bottom center, kneeling on a broken code platform, golden armor heavily cracked, his golden staff lying several meters away. Xiao Qi is caught in a dark data hand in the midground. Cinematic lighting, photorealistic CGI, tech-noir aesthetic. 8k resolution.</div>
+</div>
+
+<!-- 镜头02 -->
+<h3>镜头02 · 删除失败 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>魔王胸口 | 过客跃起击碎ROOT目录，但无数相同ROOT重生<br>
+  <b>角色：</b>过客（金甲裂纹）、小七、终极Bug魔王
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 小七_角色参考图.jpg, Image 3 = 终极Bug魔王_角色参考图.jpg, Image 4 = 第三集-镜头01_分镜图.jpg（场景参考）</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Image 1 = Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor cracked, ID badge. Image 2 = Xiao Qi - small golden monkey, mini ID badge, keyboard, golden fur. Image 3 = Ultimate Bug Demon King - giant ape, server racks, red "ROOT" chest. Image 4 = Scene reference from shot 01 (same collapsing Root Directory, red code rain).<br><br>
+Vertical 9:16 cinematic storyboard frame. Medium wide action shot. Guoke (过客) has just struck the "ROOT" directory on the Ultimate Bug Demon King's chest with his staff. The ROOT icon is shattered, but dozens of identical ROOT directories are already regrowing from the cracks. Xiao Qi (小七) is held by dark data hand nearby, her expression showing alarm. Guoke's face shows shock and realization that the attack failed. Red code fragments floating. Cinematic, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<!-- 镜头03 -->
+<h3>镜头03 · 三种能力反扑 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>根目录 | 黑洞吞噬、分身爬出、黑雾缠身，三股力量同时攻击过客<br>
+  <b>角色：</b>过客（金甲裂纹）、终极Bug魔王
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 终极Bug魔王_角色参考图.jpg, Image 3 = 第三集-镜头02_分镜图.jpg（场景参考）</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Image 1 = Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor cracked, ID badge. Image 2 = Ultimate Bug Demon King - giant ape, server racks, red "ROOT" chest, three abilities manifesting. Image 3 = Scene reference from shot 02 (same Root Directory, same red code rain).<br><br>
+Vertical 9:16 cinematic storyboard frame. 3/4 angle shot. Guoke (过客) in the center foreground, his body turned 3/4 toward the camera, looking UP at the Ultimate Bug Demon King (终极Bug魔王) who towers in the upper-right background. Both Guoke's face (showing shock and pain) and the Bug King are visible in frame. Three threats converge: a black hole vortex opens from the demon king's palm on the upper left, Infinite Loop Demon clones crawl out of the code ground below, and dark mist tendrils wrap around Guoke from the upper right. Red and purple energy clash. Guoke's staff is raised in defense. Cinematic, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<!-- 镜头04 -->
+<h3>镜头04 · 主角跌入低谷 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>根目录断裂平台 | 过客被击飞，撑地起身，金甲裂纹扩大，工牌被黑雾遮住<br>
+  <b>角色：</b>过客（金甲裂纹）、终极Bug魔王
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 终极Bug魔王_角色参考图.jpg, Image 3 = 第三集-镜头03_分镜图.jpg（场景参考）</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Image 1 = Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor heavily cracked, ID badge partially obscured by dark mist. Image 2 = Ultimate Bug Demon King looming in background. Image 3 = Scene reference from shot 03 (same Root Directory, same dark mist).<br><br>
+Vertical 9:16 cinematic storyboard frame. Low angle close-up, defeated hero composition. Guoke (过客) is on one knee, supporting himself with his staff. Golden armor cracks are extensive, the ID badge half-covered by dark mist. His expression is exhausted but defiant. The Ultimate Bug Demon King (终极Bug魔王) looms in the background, looking down with contempt. The staff's golden light is dim. Dark oppressive atmosphere, dramatic side lighting. Cinematic, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<hr>
+
+<!-- ==================== 场景二：现实世界 ==================== -->
+<h2>场景二 · 现实世界·最后窗口 <span class="section-tag section-reality">镜头5-7</span></h2>
+
+<!-- 镜头05 -->
+<h3>镜头05 · 现实世界同步崩溃 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>公司应急会议室 | 大屏全红，产品经理要拔电源，林岚拦住<br>
+  <b>角色：</b>林岚、产品经理、过客（工位，失去意识）
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 林岚_角色参考图.jpg, Image 2 = 过客_角色参考图_GPT版.jpg, Image 3 = 产品经理_角色参考图.jpg</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Image 1 = Lin Lan - 28yo East Asian female, sharp short black hair, intelligent eyes, professional dark suit. Image 2 = Guoke (real world form) - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Regular dark hoodie, ID badge. Image 3 = Product Manager - 40yo East Asian male, slightly overweight, anxious expression, wrinkled light blue shirt, rolled-up sleeves, holding phone.<br><br>
+Vertical 9:16 cinematic storyboard frame. Wide shot of a server room/emergency meeting room. A large monitor wall shows all services in red alert. Product Manager (产品经理) is lunging forward toward Guoke's workstation, reaching for the power cord. Lin Lan (林岚) stands in front of him, blocking his path with her body, expression fierce and firm. Guoke (过客) is slumped unconscious at his desk in the background. No dialogue text, no speech bubbles, no text overlays on screen. Red alert lighting, tense atmosphere. Photorealistic, cinematic lighting. 8k resolution.</div>
+</div>
+
+<!-- 镜头06 -->
+<h3>镜头06 · 林岚争取最后窗口 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>会议室 | 产品经理与林岚对峙，林岚按住强制关机按钮<br>
+  <b>角色：</b>林岚、产品经理
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 林岚_角色参考图.jpg, Image 2 = 产品经理_角色参考图.jpg, Image 3 = 第三集-镜头05_分镜图.jpg（场景参考，保持同一房间）</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Image 1 = Lin Lan - 28yo East Asian female, sharp short black hair, intelligent eyes, professional dark suit. Image 2 = Product Manager - 40yo East Asian male, overweight, anxious expression, wrinkled light blue shirt, rolled-up sleeves, holding phone in one hand. Image 3 = Scene reference from shot 05 (maintain same server room, same monitor wall, same red lighting).<br><br>
+Vertical 9:16 cinematic storyboard frame. Same server room/emergency meeting room as previous shot, same large monitor wall showing all services in red alert, same dark red lighting. Medium shot. Lin Lan (林岚) stands in the foreground, one hand on the emergency shutdown button on the workstation console, her expression calm and unyielding. Product Manager (产品经理) is behind her, pointing at the red alert screens, face flushed with anxiety. No other people in the room, only these two characters. No dialogue text, no speech bubbles, no text overlays on screen. Red alert lighting, tense atmosphere matching previous shot. Photorealistic, cinematic. 8k resolution.</div>
+</div>
+
+<!-- 镜头07 -->
+<h3>镜头07 · 六十秒倒计时 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>大屏 → 过客工位 | 倒计时60秒，过客趴在键盘前，连接进度跳到2%<br>
+  <b>角色：</b>林岚、过客（工位，失去意识）
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 林岚_角色参考图.jpg, Image 2 = 过客_角色参考图_GPT版.jpg, Image 3 = 第三集-镜头06_分镜图.jpg（场景参考）</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Image 1 = Lin Lan - 28yo East Asian female, sharp short black hair, intelligent eyes, professional dark suit. Image 2 = Guoke (real world form) - 28yo East Asian male, gaunt face, dark circles, M-shaped hairline, dark hoodie, unconscious at desk. Image 3 = Scene reference from shot 06 (same server room, same red alert lighting).<br><br>
+Vertical 9:16 cinematic storyboard frame. Split composition: Left side shows a large monitor with "最后调试窗口 00:60" countdown timer in red. Right side shows Guoke (过客) slumped unconscious at his desk in the office, head on keyboard, screen showing "大圣协议连接中 - 2%". Lin Lan (林岚) stands beside him, watching the screen with hope and determination. Blue-white glow of the monitor illuminates their faces. Photorealistic, cinematic. 8k resolution.</div>
+</div>
+
+<hr>
+
+<!-- ==================== 场景三：日志真相 ==================== -->
+<h2>场景三 · 真相回溯 <span class="section-tag section-truth">镜头8-13</span></h2>
+
+<!-- 镜头08 -->
+<h3>镜头08 · 过客改变策略 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>日志深渊上方 | 过客听见林岚声音，松开攻击姿态，面对日志深渊<br>
+  <b>角色：</b>过客（金甲裂纹）、小七
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 小七_角色参考图.jpg</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Image 1 = Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor cracked, ID badge. Image 2 = Xiao Qi - small golden monkey, mini ID badge, miniature keyboard, golden fur, being held by dark mist.<br><br>
+Vertical 9:16 cinematic storyboard frame. Close-up reaction shot turning to wide reveal. Guoke (过客) stands at the edge of a massive log data abyss, his back to the camera. His body language shifts from attack-ready to contemplative, staff lowering. Xiao Qi (小七) is partially trapped in dark mist nearby, looking at him with concern. Below them, a vast ocean of log data fragments swirls - some golden, some dark red. Golden light from the log abyss illuminates their faces from below. Cinematic, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<!-- 镜头09 -->
+<h3>镜头09 · 恢复原始日志 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>日志深渊 | 过客将手按进日志碎片，拉出原始金色记录<br>
+  <b>角色：</b>过客（金甲裂纹）、小七
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 小七_角色参考图.jpg, Image 3 = 第三集-镜头08_分镜图.jpg（场景参考）</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Image 1 = Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor cracked, ID badge. Image 2 = Xiao Qi - small golden monkey, golden fur, mini keyboard, now free and assisting. Image 3 = Scene reference from shot 08 (same log abyss environment).<br><br>
+Vertical 9:16 cinematic storyboard frame. Mid shot, hands in focus. Guoke (过客) reaches down into the log abyss, his hand submerged in glowing data fragments. He pulls out a golden original log record, the text "01:48 - 权限校验报警 - 标记为暂不处理" visible. Xiao Qi (小七) floats beside him, holding a piece of log data with both hands, helping to piece it together. Golden light from the log illuminates the scene. Cinematic, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<!-- 镜头10 -->
+<h3>镜头10 · 日志时间线回溯 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>日志深渊（主观视角） | 时间线高速倒退，五个关键时间点浮现<br>
+  <b>角色：</b>过客（主观视角）
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 第三集-镜头09_分镜图.jpg（场景参考）</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Image 1 = Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor cracked, ID badge. Image 2 = Scene reference from shot 09 (same log abyss environment).<br><br>
+Vertical 9:16 cinematic storyboard frame. Subjective POV, data visualization aesthetic. Five timestamps cascade down the screen vertically: "01:47 - 权限校验模块报警", "01:48 - 标记为暂不处理", "01:52 - 缓存无法释放", "01:56 - 失败请求无限重试", "01:59 - 匿名权限获得根目录访问". Each timestamp is a different color, from yellow to orange to red. Golden code lines connect them forming a causal chain. Guoke's hands or reflection visible at the bottom edge. Cinematic, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<!-- 镜头11 -->
+<h3>镜头11 · 隐藏提交记录 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>日志深渊 | 最后一条隐藏提交记录浮现，魔王第一次后退<br>
+  <b>角色：</b>过客（金甲裂纹）、终极Bug魔王
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 终极Bug魔王_角色参考图.jpg, Image 3 = 第三集-镜头10_分镜图.jpg（场景参考）</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Image 1 = Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor cracked, ID badge. Image 2 = Ultimate Bug Demon King - giant ape, server racks, red "ROOT" chest, now flickering unstable. Image 3 = Scene reference from shot 10 (same log abyss environment).<br><br>
+Vertical 9:16 cinematic storyboard frame. Medium close-up, dramatic reveal. A hidden commit record floats in the center foreground: "为赶上线时间，临时跳过权限校验。TODO：后续修复。" The text glows in golden warning color. Guoke (过客) stands in the foreground, his eyes fixed on the text with realization. The Ultimate Bug Demon King (终极Bug魔王) is in the background, taking a step back for the first time, the "ROOT" on his chest flickering unstably. Cinematic, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<!-- 镜头12 -->
+<h3>镜头12 · 真相投向现实 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>虚拟空间+现实交叉 | 过客将完整日志投向天空，责任链同步出现在会议室大屏<br>
+  <b>角色：</b>过客、小七、林岚、产品经理
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 小七_角色参考图.jpg, Image 3 = 林岚_角色参考图.jpg, Image 4 = 产品经理_角色参考图.jpg</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Image 1 = Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor, ID badge. Image 2 = Xiao Qi - small golden monkey, golden fur, mini ID badge, miniature keyboard. Image 3 = Lin Lan - 28yo female, sharp short black hair, intelligent eyes, professional dark suit. Image 4 = Product Manager - 40yo male, overweight, anxious expression, wrinkled light blue shirt, rolled-up sleeves. Note: Real-world portion must match same conference room with large monitor wall and red alert lighting as previous shots 05-07.<br><br>
+Vertical 9:16 cinematic storyboard frame. Wide shot, split reality composition. Top half: Guoke (过客) in the code world throws the complete log chain into the sky, golden text spreading across the virtual sky. Bottom half: The same responsibility chain appears on the real-world conference room monitor. Lin Lan (林岚) is saving the report, her face illuminated by golden log light. Product Manager (产品经理) is frozen, his face lit by the truth. Xiao Qi (小七) floats beside Guoke. No dialogue text, no speech bubbles, no text overlays on screen. Cinematic, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<!-- 镜头13 -->
+<h3>镜头13 · 承认错误 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>根目录核心 | 过客正面看向魔王，承认错误，魔王第一次动摇<br>
+  <b>角色：</b>过客（金甲裂纹）、终极Bug魔王
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 终极Bug魔王_角色参考图.jpg, Image 3 = 第三集-镜头04_分镜图.jpg（场景参考，同一根目录场景）</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Image 1 = Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor cracked, ID badge. Image 2 = Ultimate Bug Demon King - giant ape, server racks, red "ROOT" chest, flinching back. Image 3 = Scene reference from shot 04 (same root directory, same broken platform, same dark mist).<br><br>
+Vertical 9:16 cinematic storyboard frame. Medium close-up, moral confrontation. Guoke (过客) stands his ground, no longer defensive, looking directly at the Ultimate Bug Demon King (终极Bug魔王). The demon king's three faces show surprise and retreat for the first time. Golden log light surrounds Guoke, pushing back the dark mist. The ID badge on Guoke's chest glows gold again. His expression is calm but firm. Dramatic side lighting. Cinematic, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<hr>
+
+<!-- ==================== 场景四：终极调试 ==================== -->
+<h2>场景四 · 如意金箍棒·终极调试 <span class="section-tag section-final">镜头14-17</span></h2>
+
+<!-- 镜头14 -->
+<h3>镜头14 · 根因修复权限生成 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>根目录核心 | 完整日志化成金色锁链连接断裂的金箍棒，棒身文字变为"ROOT CAUSE FIX"<br>
+  <b>角色：</b>过客（金甲，裂纹被金色代码缝合）
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 第三集-镜头13_分镜图.jpg（场景参考，同一根目录核心）</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Image 1 = Guoke - 28yo East Asian male, square jawline, gaunt face, prominent dark purple-brown circles under eyes, short messy black hair with M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor, cracks being repaired by golden code, ID badge. Image 2 = Scene reference from shot 13 (same root directory core).<br><br>
+Vertical 9:16 cinematic storyboard frame. Medium close-up, power restoration moment. The complete log data has transformed into golden chains, wrapping around the broken golden staff and reconnecting it. The staff's text changes from "REFACTOR" to "ROOT CAUSE FIX" in golden light. Guoke (过客) grips the repaired staff, golden code threads stitching the cracks in his armor. Golden light surges from the staff upward. Dark code world background. Cinematic, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<!-- 镜头15 -->
+<h3>镜头15 · 三项修复执行 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>根目录 | 过客踏筋斗云穿过分身，火眼金睛锁定真实ROOT，小七贴上日志符文<br>
+  <b>角色：</b>过客（金甲修复）、小七、终极Bug魔王
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 小七_角色参考图.jpg, Image 3 = 终极Bug魔王_角色参考图.jpg, Image 4 = 第三集-镜头14_分镜图.jpg（场景参考）</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Image 1 = Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor being repaired, ID badge. Image 2 = Xiao Qi - small golden monkey, golden fur, holding log talisman. Image 3 = Ultimate Bug Demon King - giant ape, red "ROOT" chest, surrounded by clones. Image 4 = Scene reference from shot 14 (same root directory core).<br><br>
+Vertical 9:16 cinematic storyboard frame. Dynamic action montage composition. Guoke (过客) rides the golden cloud (筋斗云) through the air, flying past Infinite Loop clones. His eyes glow with golden light (火眼金睛) locking onto the real ROOT target. Xiao Qi (小七) floats beside him, pressing a golden log talisman onto a fake ROOT directory. Three status indicators at the top of frame: "PERMISSION CHECK ◻", "LOOP CONDITION ◻", "MEMORY RELEASE ◻". Cinematic, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<!-- 镜头16 -->
+<h3>镜头16 · 金甲大圣虚影 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>根目录上空 | 过客身后浮现巨大金甲大圣虚影，金箍棒延伸成金色编辑光标<br>
+  <b>角色：</b>过客（金甲修复）
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 第三集-镜头15_分镜图.jpg（场景参考）</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Image 1 = Guoke - 28yo East Asian male, square jawline, gaunt face, prominent dark purple-brown circles under eyes, short messy black hair with M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor fully repaired and glowing, ID badge. Image 2 = Scene reference from shot 15 (same root directory core).<br><br>
+Vertical 9:16 cinematic storyboard frame. Ultra-wide epic shot, extreme vertical composition. Guoke (过客) stands in the foreground, arms raised, holding the golden staff. Behind him, a massive golden giant Great Sage (大圣) phantom appears, towering into the sky. The staff extends upward into a giant golden cursor line that reaches the Root Directory palace. Golden light radiates from the phantom, lighting up the entire dark code world. Cinematic, photorealistic CGI, epic scale. 8k resolution.</div>
+</div>
+
+<!-- 镜头17 -->
+<h3>镜头17 · 终极调试成功 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>根目录 | 金色光标从魔王头顶划到ROOT底部，三个状态全部变绿，魔王崩解<br>
+  <b>角色：</b>过客（金甲修复）、终极Bug魔王（崩解中）
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_金甲参考图.jpg, Image 2 = 终极Bug魔王_角色参考图.jpg, Image 3 = 第三集-镜头16_分镜图.jpg（场景参考）</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Image 1 = Guoke - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Golden armor fully repaired, ID badge. Image 2 = Ultimate Bug Demon King - giant ape, body disintegrating, red "ROOT" fading. Image 3 = Scene reference from shot 16 (same root directory, same golden cursor).<br><br>
+Vertical 9:16 cinematic storyboard frame. Wide triumphant shot. The golden cursor has slashed from the Ultimate Bug Demon King's head through the ROOT directory. The King's body is disintegrating into ordinary error messages. Three large status indicators in the frame: "PERMISSION CHECK: PASS ✓", "LOOP CONDITION: FIXED ✓", "MEMORY RELEASE: SUCCESS ✓" all glowing green. Guoke (过客) stands in the foreground, staff raised, golden light surrounding him. Clean victory composition. Cinematic, photorealistic CGI. 8k resolution.</div>
+</div>
+
+<hr>
+
+<!-- ==================== 场景五：下班 ==================== -->
+<h2>场景五 · 系统绿灯，大圣下班 <span class="section-tag section-ending">镜头18</span></h2>
+
+<!-- 镜头18 -->
+<h3>镜头18 · 绿灯与下班彩蛋 <span class="tag tag-storyboard">分镜图</span></h3>
+<div class="scene-desc">
+  <b>场景：</b>公司办公区 · 黎明前 | 所有服务变绿，林岚递咖啡，过客准备下班，彩蛋迷你Bug<br>
+  <b>角色：</b>过客（现实形态）、林岚、产品经理、迷你Bug（彩蛋）
+</div>
+<div class="ref-upload">
+  <b>参考图上传：</b><code>Image 1 = 过客_角色参考图_GPT版.jpg, Image 2 = 林岚_角色参考图.jpg, Image 3 = 产品经理_角色参考图.jpg, Image 4 = 第三集-镜头07_分镜图.jpg（场景参考）</code>
+</div>
+<div class="prompt-box">
+  <div class="prompt-header"><span class="platform">GPT-Image-2 · 分镜图</span></div>
+  <div class="prompt-body">CHARACTER LOCK: Image 1 = Guoke (real world) - 28yo East Asian male, square jawline, gaunt face, dark circles, M-shaped hairline, narrow inner double eyelids, thin lips. Regular dark hoodie, ID badge. Image 2 = Lin Lan - 28yo female, sharp short black hair, intelligent eyes, professional dark suit, holding a coffee cup. Image 3 = Product Manager - 40yo male, overweight, defeated expression, wrinkled light blue shirt, rolled-up sleeves. Image 4 = Scene reference from shot 07 (same office environment, dawn lighting).<br><br>
+Vertical 9:16 cinematic storyboard frame. Medium wide shot, warm morning office atmosphere. Guoke (过客) is waking up at his desk, the large monitor behind him showing all services in green. Lin Lan (林岚) hands him a cup of hot coffee. Product Manager (产品经理) stands in the background, looking defeated. Office windows show dawn light. In the bottom right corner of Guoke's screen, a tiny yellow bug icon (迷你Bug) peeks out, with text "检测到未知Bug，是否启动二次大圣协议？"
+Warm lighting, dawn colors. Photorealistic, cinematic. 8k resolution.</div>
+</div>
+
+</body>
+</html>

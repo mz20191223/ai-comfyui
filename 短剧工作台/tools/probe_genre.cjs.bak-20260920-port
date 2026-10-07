@@ -1,0 +1,77 @@
+/**
+ * 题材下拉巡检：剧本页 + 新建项目页，点开下拉抓选项、并验证"能自己输入新题材"。
+ */
+const fs = require('fs');
+const PW_CORE = process.env.PW_CORE
+  || 'C:/Users/Administrator/AppData/Roaming/npm/node_modules/@playwright/cli/node_modules/playwright-core';
+const { chromium } = require(PW_CORE);
+const BASE = process.env.BASE || 'http://127.0.0.1:5180';
+const SHOT = 'storage/ui-tour';
+const EXE = [
+  'C:/Program Files/Google/Chrome/Application/chrome.exe',
+  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+].find((p) => fs.existsSync(p));
+
+(async () => {
+  fs.mkdirSync(SHOT, { recursive: true });
+  const browser = await chromium.launch({ headless: true, executablePath: EXE });
+  const ctx = await browser.newContext({ viewport: { width: 1600, height: 950 } });
+  const page = await ctx.newPage();
+  const errs = [];
+  const bad = [];
+  page.on('console', (m) => { if (m.type() === 'error') errs.push(m.text().slice(0, 220)); });
+  page.on('pageerror', (e) => errs.push('PAGEERROR ' + String(e).slice(0, 220)));
+  page.on('response', (r) => { if (r.status() >= 400) bad.push(`${r.status()} ${r.url().slice(0, 120)}`); });
+
+  // ---------- 1) 剧本页 ----------
+  await page.goto(`${BASE}/?_r=${Date.now()}/#/p/1/script`, { waitUntil: 'load', timeout: 25000 });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForTimeout(1200);
+
+  const sel = page.locator('.req-row .el-select').first();
+  console.log('剧本页 题材 是 select:', await sel.count() > 0, '| 当前显示值:', (await sel.innerText()).trim());
+  await sel.click();
+  await page.waitForTimeout(700);
+  const opts1 = await page.locator('.el-select-dropdown:visible .el-select-dropdown__item').allInnerTexts();
+  console.log('剧本页 下拉选项数:', opts1.length);
+  console.log('  前 12:', opts1.slice(0, 12).join(' / '));
+  await page.screenshot({ path: `${SHOT}/genre_script.png` });
+
+  // 选一个看看能不能选中
+  await page.locator('.el-select-dropdown:visible .el-select-dropdown__item', { hasText: '悬疑推理' }).first().click();
+  await page.waitForTimeout(400);
+  console.log('选中「悬疑推理」后显示:', (await sel.innerText()).trim());
+
+  // 自己输入一个不存在的题材
+  await sel.click();
+  await page.waitForTimeout(300);
+  await page.keyboard.type('赛博朋克外卖');
+  await page.waitForTimeout(600);
+  const created = await page.locator('.el-select-dropdown:visible .el-select-dropdown__item').first().innerText().catch(() => '');
+  console.log('输入新词后首个候选(应是自己输入的):', created.trim(), '| 提示语:', created.includes('新增') || created.includes('创建'));
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(400);
+  console.log('回车后显示:', (await sel.innerText()).trim());
+
+  // ---------- 2) 新建项目页 ----------
+  await page.goto(`${BASE}/?_r=${Date.now()}/#/`, { waitUntil: 'load', timeout: 25000 });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForTimeout(1000);
+  await page.getByRole('button', { name: /新建项目/ }).first().click();
+  await page.waitForTimeout(800);
+  const dlg = page.locator('.el-dialog:visible').last();
+  const dlgSel = dlg.locator('.el-select').first();
+  console.log('新建项目 题材 是 select:', await dlgSel.count() > 0);
+  console.log('  placeholder:', await dlgSel.locator('input').getAttribute('placeholder').catch(() => '(无)'));
+  await dlgSel.click();
+  await page.waitForTimeout(700);
+  const opts2 = await page.locator('.el-select-dropdown:visible .el-select-dropdown__item').allInnerTexts();
+  console.log('新建项目 下拉选项数:', opts2.length, '| 前 8:', opts2.slice(0, 8).join(' / '));
+  await page.screenshot({ path: `${SHOT}/genre_new_project.png` });
+
+  console.log('--- 控制台报错', errs.length, '条 ---');
+  errs.forEach((e) => console.log('  ' + e));
+  console.log('--- 失败请求', bad.length, '条 ---');
+  bad.forEach((b) => console.log('  ' + b));
+  await browser.close();
+})().catch((e) => { console.error('FATAL', e); process.exit(1); });
